@@ -6,27 +6,35 @@ hexo.extend.injector.register('head_end', `
     .home-article-list, .sidebar-content .statistics, .sidebar-content .author .label { display: none !important; }
     
     /* === 1. 头像特殊处理 === */
-    sidebar-content .avatar {
-        width: 120px !important;
-        height: 120px !important;
-        margin: 20px auto !important; /* 上下留空，水平居中 */
-        display: block !important;
+    /* 容器：必须是正方形，且不能被拉伸 */
+    .sidebar-content .avatar {
+        width: 118px !important;
+        height: 118px !important;
+        min-width: 118px !important; /* 锁死最小宽度 */
+        min-height: 118px !important; /* 锁死最小高度 */
+        margin: 20px auto 10px auto !important; /* 上下留空，居中 */
+        border-radius: 50% !important;
         background: none !important;
         opacity: 1 !important;
         visibility: visible !important;
+        display: flex !important; /* 确保内部图片居中 */
+        justify-content: center;
+        align-items: center;
+        flex: 0 0 auto !important; /* 关键：禁止 Flex 布局拉伸它 */
     }
-    /* 强制图片填满容器，且绝对显示 */
+
+    /* 图片：填满正方形，裁切多余部分 */
     .sidebar-content .avatar img {
         display: block !important;
         width: 100% !important;
         height: 100% !important;
         border-radius: 50% !important;
-        border: 3px solid #fff;
+        border: 4px solid #fff; /* 加粗一点白边更好看 */
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        object-fit: cover !important;
+        object-fit: cover !important; /* 关键：保持比例，不压扁 */
         opacity: 1 !important;
         visibility: visible !important;
-        max-width: none !important; /* 防止被主题限制 */
+        max-width: none !important;
     }
     
     .article-header .author-label,
@@ -66,7 +74,7 @@ hexo.extend.injector.register('head_end', `
     .cv-section-title { 
         font-size: 35px; 
         font-weight: 800; 
-        margin: 50px 0 25px; 
+        margin: 40px 0 25px; 
         display: flex; 
         align-items: center; 
         gap: 12px; 
@@ -78,11 +86,15 @@ hexo.extend.injector.register('head_end', `
         /* 下划线改为半透明白 */
         border-bottom: 2px solid rgba(255,255,255,0.3); 
     }
+    /* === 关键：强制去掉第一个板块 (Education) 的顶部空白 === */
+    .cv-edu-section .cv-section-title {
+        margin-top: 0 !important;
+    }
     .cv-grid { display: flex; flex-direction: column; gap: 20px; }
     .cv-card { display: flex; align-items: flex-start; gap: 20px; text-decoration: none !important; color: inherit; background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(0,0,0,0.06); border-radius: 16px; padding: 24px; transition: all 0.3s ease; position: relative; z-index: 10; }
     .cv-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.08); background: rgba(255,255,255,0.85); }
     .cv-logo-box { width: 60px; height: 60px; flex-shrink: 0; border-radius: 12px; background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-    .cv-logo-box img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+    .cv-logo-box img { width: 100% !important; height: 100% !important; object-fit: cover !important; padding: 0 !important; }
     .cv-logo-box i { font-size: 30px; opacity: 0.7; }
     .cv-content-box { flex: 1; min-width: 0; }
     .cv-card-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px; }
@@ -92,7 +104,7 @@ hexo.extend.injector.register('head_end', `
     .cv-time { font-size: 14px; opacity: 0.5; font-family: monospace; white-space: nowrap; margin-left: 10px; }
     .cv-gpa { font-size: 14px; font-weight: 600; opacity: 0.8; font-family: monospace; color: #444; background: rgba(0,0,0,0.04); padding: 2px 6px; border-radius: 4px; }
     .cv-desc { font-size: 14px; opacity: 0.75; line-height: 1.6; margin-top: 5px; }
-    .cv-edu-section .cv-card { border-left: 5px solid #10b981; } .cv-edu-section .cv-org { color: #10b981; } .cv-edu-section .cv-logo-box i { color: #10b981; }
+    .cv-edu-section .cv-card { border-left: 5px solid #f97316; } .cv-edu-section .cv-org { color: #f97316; } .cv-edu-section .cv-logo-box i { color: #f97316; }
     .cv-exp-section .cv-card { border-left: 5px solid #3b82f6; } .cv-exp-section .cv-org { color: #3b82f6; } .cv-exp-section .cv-logo-box i { color: #3b82f6; }
     .cv-proj-section .cv-card { border-left: 5px solid #8b5cf6; } .cv-proj-section .cv-org { color: #8b5cf6; } .cv-proj-section .cv-logo-box i { color: #8b5cf6; }
     
@@ -203,6 +215,9 @@ hexo.extend.injector.register('body_end', `
                         <span class="cv-sidebar-tag">Python</span>
                         <span class="cv-sidebar-tag">SQL</span>
                         <span class="cv-sidebar-tag">Tableau</span>
+                        <span class="cv-sidebar-tag">AI</span>
+                        <span class="cv-sidebar-tag">ML</span>
+                        <span class="cv-sidebar-tag">Web3</span>
                         <span class="cv-sidebar-tag">AWS</span>
                     </div>
                     <div><a href="mailto:ddl1208@icloud.com" class="cv-contact-btn">Contact Me</a></div>
@@ -224,7 +239,9 @@ hexo.extend.injector.register('body_end', `
                 <div class="cv-section-title"><i class="fa-solid fa-graduation-cap"></i> Education</div>
                 <div class="cv-grid">
                   <a href="/2023/09/28/MISM-Carnegie-Mellon-University/" class="cv-card">
-                    <div class="cv-logo-box"><i class="fa-solid fa-school"></i></div> 
+                    <div class="cv-logo-box">
+                        <img src="/images/CMU.png" alt="CMU">
+                    </div>
                     <div class="cv-content-box">
                       <div class="cv-card-header"><span class="cv-role">Carnegie Mellon University</span><span class="cv-time">Sep 2023 - Dec 2024</span></div>
                       <div class="cv-card-subheader"><span class="cv-org">Master of Information Systems</span><span class="cv-gpa">GPA: 3.8 / 4.0</span></div>
@@ -232,10 +249,12 @@ hexo.extend.injector.register('body_end', `
                     </div>
                   </a>
                   <a href="/2019/02/11/BCompSci-Data-Science-University-of-Queensland/" class="cv-card">
-                    <div class="cv-logo-box"><i class="fa-solid fa-school"></i></div>
+                    <div class="cv-logo-box">
+                        <img src="/images/uq2.png" alt="UQ">
+                    </div>
                     <div class="cv-content-box">
                       <div class="cv-card-header"><span class="cv-role">University of Queensland</span><span class="cv-time">Feb 2019 - Dec 2022</span></div>
-                      <div class="cv-card-subheader"><span class="cv-org">Bachelor of CompSci & Data Science</span><span class="cv-gpa">GPA: 3.88 / 4.0</span></div>
+                      <div class="cv-card-subheader"><span class="cv-org">Bachelor of Computer Science & Data Science</span><span class="cv-gpa">GPA: 3.88 / 4.0</span></div>
                       <div class="cv-desc">Focus: Algorithms, Database Managements, Statistics.</div>
                     </div>
                   </a>
@@ -246,7 +265,9 @@ hexo.extend.injector.register('body_end', `
                 <div class="cv-section-title"><i class="fa-solid fa-briefcase"></i> Work Experience</div>
                 <div class="cv-grid">
                   <a href="/2025/05/26/AI-Data-Scientist-Intel/" class="cv-card">
-                    <div class="cv-logo-box"><i class="fa-solid fa-microchip"></i></div>
+                    <div class="cv-logo-box">
+                        <img src="/images/intel.png" alt="intel">
+                    </div>
                     <div class="cv-content-box">
                       <div class="cv-card-header"><span class="cv-role">Intel Corporation</span><span class="cv-time">May 2025 - Present</span></div>
                       <div class="cv-card-subheader"><span class="cv-org">AI Data Scientist</span></div>
@@ -254,7 +275,9 @@ hexo.extend.injector.register('body_end', `
                     </div>
                   </a>
                   <a href="/2024/05/20/Strategic-Sourcing-Data-Analyst-MSA-Safety/" class="cv-card">
-                     <div class="cv-logo-box"><i class="fa-solid fa-industry"></i></div>
+                     <div class="cv-logo-box">
+                        <img src="/images/msa.jpg" alt="msa">
+                    </div>
                      <div class="cv-content-box">
                        <div class="cv-card-header"><span class="cv-role">MSA Safety</span><span class="cv-time">May 2024 - Dec 2024</span></div>
                        <div class="cv-card-subheader"><span class="cv-org">Data Analyst Internship</span></div>
@@ -262,7 +285,9 @@ hexo.extend.injector.register('body_end', `
                      </div>
                   </a>
                   <a href="/2023/02/18/Data-Scientist-Intern-LVMH/" class="cv-card">
-                    <div class="cv-logo-box"><i class="fa-solid fa-gem"></i></div>
+                    <div class="cv-logo-box">
+                        <img src="/images/lvmh.jpg" alt="lvmg">
+                    </div>
                     <div class="cv-content-box">
                       <div class="cv-card-header"><span class="cv-role">LVMH</span><span class="cv-time">Feb 2023 - Jul 2023</span></div>
                       <div class="cv-card-subheader"><span class="cv-org">Data Scientist Internship</span></div>
@@ -270,7 +295,9 @@ hexo.extend.injector.register('body_end', `
                     </div>
                   </a>
                   <a href="/2021/12/13/Data-Expert-Intern-Signify/" class="cv-card">
-                    <div class="cv-logo-box"><i class="fa-solid fa-lightbulb"></i></div>
+                    <div class="cv-logo-box">
+                        <img src="/images/signifycompany_logo.jpg" alt="signify">
+                    </div>
                     <div class="cv-content-box">
                       <div class="cv-card-header"><span class="cv-role">Signify</span><span class="cv-time">Dec 2021 - Sep 2022</span></div>
                       <div class="cv-card-subheader"><span class="cv-org">Data Expert Internship</span></div>
@@ -285,7 +312,9 @@ hexo.extend.injector.register('body_end', `
                 <div class="cv-grid">
                   
                   <a href="/2024/08/19/Capstone-Emotion-Classification-with-LLMs/" class="cv-card">
-                    <div class="cv-logo-box"><i class="fa-solid fa-brain"></i></div>
+                    <div class="cv-logo-box">
+                        <img src="/images/tcs.png" alt="tcs">
+                    </div>
                     <div class="cv-content-box">
                       <div class="cv-card-header"><span class="cv-role">CMU & Tata Consultancy Services</span><span class="cv-time">Aug 2024 - Dec 2024</span></div>
                       <div class="cv-card-subheader"><span class="cv-org">Data Scientist - Emotion Classification with LLMs and NLP Models Capstone Project</span></div>
@@ -294,7 +323,9 @@ hexo.extend.injector.register('body_end', `
                   </a>
 
                   <a href="/2024/01/12/Recognition-Fault-Detection-System/" class="cv-card">
-                    <div class="cv-logo-box"><i class="fa-solid fa-video"></i></div>
+                    <div class="cv-logo-box">
+                        <img src="/images/GE-Logo.png" alt="ge">
+                    </div>
                     <div class="cv-content-box">
                       <div class="cv-card-header"><span class="cv-role">CMU & General Electric</span><span class="cv-time">Jan 2024 - May 2024</span></div>
                       <div class="cv-card-subheader"><span class="cv-org">Data Scientist - Recognition and Fault Detection System Project</span></div>
@@ -303,7 +334,9 @@ hexo.extend.injector.register('body_end', `
                   </a>
 
                   <a href="/2023/09/30/Movie-Recommendations-Platform" class="cv-card">
-                    <div class="cv-logo-box"><i class="fa-solid fa-film"></i></div>
+                    <div class="cv-logo-box">
+                        <img src="/images/Netflix-Symbol.png" alt="netflix">
+                    </div>
                     <div class="cv-content-box">
                       <div class="cv-card-header"><span class="cv-role">CMU & Netflix</span><span class="cv-time">Sep 2023 - Dec 2023</span></div>
                       <div class="cv-card-subheader"><span class="cv-org">Data Scientist - Movie Recommendations Platform Project</span></div>

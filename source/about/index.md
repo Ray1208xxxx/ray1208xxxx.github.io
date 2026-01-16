@@ -68,7 +68,7 @@ layout: "about"
 * **Scalable Architecture:** Designed distributed ETL pipelines (Azure Data Factory, Databricks, Spark) for TB-scale data, driving supply chain digital transformation. 
 
 <div class="job-header" style="margin-top: 30px;">
-  <h3>MSA Safety — Strategic Sourcing Data Analyst</h3>
+  <h3>MSA Safety — Data Analyst Internship</h3>
   <div class="job-meta">
     <span><i class="fa-solid fa-location-dot"></i> Pittsburgh, USA</span>
     <span class="separator">|</span>
@@ -81,7 +81,7 @@ layout: "about"
 * **BI Optimization:** Optimized Power BI DAX queries and ETL pipelines, significantly accelerating report refresh speeds.  
 
 <div class="job-header" style="margin-top: 30px;">
-  <h3>LVMH — Data Scientist Intern</h3>
+  <h3>LVMH — Data Scientist Internship</h3>
   <div class="job-meta">
     <span><i class="fa-solid fa-location-dot"></i> Shanghai, China</span>
     <span class="separator">|</span>
@@ -94,7 +94,7 @@ layout: "about"
 * **Performance Marketing:** Analyzed 9 major campaigns, increasing operational efficiency by **34%** and reducing costs by **15%**. 
 
 <div class="job-header" style="margin-top: 30px;">
-  <h3>Signify — Data Expert Intern</h3>
+  <h3>Signify — Data Expert Internship</h3>
   <div class="job-meta">
     <span><i class="fa-solid fa-location-dot"></i> Chengdu, China</span>
     <span class="separator">|</span>
