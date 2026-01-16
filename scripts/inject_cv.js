@@ -6,9 +6,18 @@ hexo.extend.injector.register('head_end', `
     .home-article-list, .sidebar-content .statistics, .sidebar-content .author .label { display: none !important; }
     
     /* === 1. 头像特殊处理 === */
-    .sidebar-content .avatar img { opacity: 0; transition: opacity 0.3s ease; }
-    .sidebar-content .avatar img.loaded { opacity: 1; border-radius: 50% !important; width: 120px !important; height: 120px !important; object-fit: cover !important; border: 3px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-
+    .sidebar-content .avatar img { 
+        opacity: 1 !important; 
+        border-radius: 50% !important; 
+        width: 120px !important; 
+        height: 120px !important; 
+        object-fit: cover !important; 
+        border: 3px solid #fff; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+        display: block !important;
+        margin: 0 auto; 
+    }
+    
     .article-header .author-label,
     .info .author-label { 
         display: none !important; 
