@@ -6,16 +6,27 @@ hexo.extend.injector.register('head_end', `
     .home-article-list, .sidebar-content .statistics, .sidebar-content .author .label { display: none !important; }
     
     /* === 1. 头像特殊处理 === */
-    .sidebar-content .avatar img { 
-        opacity: 1 !important; 
-        border-radius: 50% !important; 
-        width: 120px !important; 
-        height: 120px !important; 
-        object-fit: cover !important; 
-        border: 3px solid #fff; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+    sidebar-content .avatar {
+        width: 120px !important;
+        height: 120px !important;
+        margin: 20px auto !important; /* 上下留空，水平居中 */
         display: block !important;
-        margin: 0 auto; 
+        background: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    /* 强制图片填满容器，且绝对显示 */
+    .sidebar-content .avatar img {
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 50% !important;
+        border: 3px solid #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        object-fit: cover !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        max-width: none !important; /* 防止被主题限制 */
     }
     
     .article-header .author-label,
@@ -154,11 +165,9 @@ hexo.extend.injector.register('body_end', `
       manageHomeLayout();
 
       // === 1. 文章详情页头部修正 (新增) ===
-      // 只要找到文章头部，就执行替换
       var articleHeader = document.querySelector('.article-header');
       if (articleHeader) {
           var avatarImg = articleHeader.querySelector('.avatar img');
-          // 强制替换头像
           if (avatarImg && !avatarImg.src.includes('avatar.png')) {
               avatarImg.src = "/images/avatar.png";
           }
@@ -167,58 +176,36 @@ hexo.extend.injector.register('body_end', `
       // 2. 只在首页运行的内容
       if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') return;
       
-      // === 2. 侧边栏改造 (增强版: 即使没有图片标签也强制插入) ===
+      // === 侧边栏改造 (暴力重写版) ===
       var sideCard = document.querySelector('.sidebar-content');
+      
       if (sideCard) {
-          // 找到头像容器 (.avatar)，而不是直接找图片
           var avatarContainer = sideCard.querySelector('.avatar');
           
           if (avatarContainer) {
-              var avatarImg = avatarContainer.querySelector('img');
+              // 检测是否已经是我们要的图片，如果不是，直接暴力重写 innerHTML
+              var img = avatarContainer.querySelector('img');
+              var currentSrc = img ? img.getAttribute('src') : '';
               
-              if (avatarImg) {
-                  // 情况 A: 已经有图片标签 -> 替换 src
-                  if (!avatarImg.classList.contains('loaded')) {
-                      // 加时间戳防止缓存
-                      avatarImg.src = "/images/avatar.png?v=" + new Date().getTime();
-                      avatarImg.onload = function() { avatarImg.classList.add('loaded'); };
-                      // 如果图片已经加载完了，直接显示
-                      if (avatarImg.complete) avatarImg.classList.add('loaded');
-                  }
-              } else {
-                  // 情况 B: 没有图片标签 (说明显示的是文字 "Ray Zeng") -> 强制清空文字并插入图片
-                  avatarContainer.innerText = ""; // 清空文字
-                  
-                  var newImg = document.createElement('img');
-                  newImg.src = "/images/avatar.png?v=" + new Date().getTime();
-                  newImg.className = "loaded"; 
-                  
-                  // 强制赋予样式，确保显示正常
-                  newImg.style.opacity = "1";
-                  newImg.style.borderRadius = "50%";
-                  newImg.style.width = "120px";
-                  newImg.style.height = "120px";
-                  newImg.style.objectFit = "cover";
-                  newImg.style.border = "3px solid #fff";
-                  newImg.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
-                  
-                  avatarContainer.appendChild(newImg);
+              if (!img || !currentSrc.includes('avatar.png')) {
+                  console.log("正在重写头像 HTML...");
+                  // 直接清空容器，填入全新的 IMG 标签
+                  avatarContainer.innerHTML = '<img src="/images/avatar.png?v=' + new Date().getTime() + '" style="opacity: 1 !important; display: block !important;">';
               }
           }
+
+          // 插入 Bio
           if (!sideCard.querySelector('.cv-sidebar-bio')) {
               var bioHTML = \`
                 <div class="cv-sidebar-bio">
-                    <p>Hi, I'm Ray. <br> A Data Scientist with experience across AI, Machine Learning, and Business Intelligence, turning complex data into clear insights and impactful decisions.</p>
+                    <p>Hi, I'm Ray. <br> A Data Scientist with experience across AI, Machine Learning, and Business Intelligence.</p>
                     <div class="cv-sidebar-tags">
                         <span class="cv-sidebar-tag">Python</span>
                         <span class="cv-sidebar-tag">SQL</span>
                         <span class="cv-sidebar-tag">Tableau</span>
-                        <span class="cv-sidebar-tag">AI</span>
-                        <span class="cv-sidebar-tag">ML</span>
-                        <span class="cv-sidebar-tag">Web3</span>
                         <span class="cv-sidebar-tag">AWS</span>
                     </div>
-                    <div><a href="mailto:your.email@example.com" class="cv-contact-btn">Contact Me</a></div>
+                    <div><a href="mailto:ddl1208@icloud.com" class="cv-contact-btn">Contact Me</a></div>
                 </div>
               \`;
               var wrapper = document.createElement('div');
