@@ -158,14 +158,43 @@ hexo.extend.injector.register('body_end', `
       // 2. 只在首页运行的内容
       if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') return;
       
-      // === 侧边栏改造 ===
+      // === 2. 侧边栏改造 (增强版: 即使没有图片标签也强制插入) ===
       var sideCard = document.querySelector('.sidebar-content');
       if (sideCard) {
-          var avatarImg = sideCard.querySelector('.avatar img');
-          if (avatarImg && !avatarImg.classList.contains('loaded')) {
-              avatarImg.src = "/images/avatar.png?v=" + new Date().getTime();
-              avatarImg.onload = function() { avatarImg.classList.add('loaded'); };
-              if (avatarImg.complete) avatarImg.classList.add('loaded');
+          // 找到头像容器 (.avatar)，而不是直接找图片
+          var avatarContainer = sideCard.querySelector('.avatar');
+          
+          if (avatarContainer) {
+              var avatarImg = avatarContainer.querySelector('img');
+              
+              if (avatarImg) {
+                  // 情况 A: 已经有图片标签 -> 替换 src
+                  if (!avatarImg.classList.contains('loaded')) {
+                      // 加时间戳防止缓存
+                      avatarImg.src = "/images/avatar.png?v=" + new Date().getTime();
+                      avatarImg.onload = function() { avatarImg.classList.add('loaded'); };
+                      // 如果图片已经加载完了，直接显示
+                      if (avatarImg.complete) avatarImg.classList.add('loaded');
+                  }
+              } else {
+                  // 情况 B: 没有图片标签 (说明显示的是文字 "Ray Zeng") -> 强制清空文字并插入图片
+                  avatarContainer.innerText = ""; // 清空文字
+                  
+                  var newImg = document.createElement('img');
+                  newImg.src = "/images/avatar.png?v=" + new Date().getTime();
+                  newImg.className = "loaded"; 
+                  
+                  // 强制赋予样式，确保显示正常
+                  newImg.style.opacity = "1";
+                  newImg.style.borderRadius = "50%";
+                  newImg.style.width = "120px";
+                  newImg.style.height = "120px";
+                  newImg.style.objectFit = "cover";
+                  newImg.style.border = "3px solid #fff";
+                  newImg.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+                  
+                  avatarContainer.appendChild(newImg);
+              }
           }
           if (!sideCard.querySelector('.cv-sidebar-bio')) {
               var bioHTML = \`
