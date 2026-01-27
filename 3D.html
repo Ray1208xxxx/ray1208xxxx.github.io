@@ -68,41 +68,6 @@
             border-radius: 4px;
         }
 
-        .legend-box {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid transparent;
-            background-image: linear-gradient(to right, transparent, rgba(0, 242, 255, 0.3), transparent);
-            background-size: 100% 1px;
-            background-repeat: no-repeat;
-            background-position: bottom;
-        }
-        .legend-title {
-            font-size: 1.2rem; 
-            font-weight: 600; 
-            color: rgba(0, 242, 255, 0.9);  
-            margin-bottom: 12px; 
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
-        }
-        .legend-items {
-            display: flex; flex-wrap: wrap; gap: 12px;
-        }
-        .legend-item {
-            display: flex; align-items: center; font-size: 1.0rem; color: #d0e0ff;
-            font-weight: 500;
-        }
-
-        .status-block {
-            width: 12px; height: 12px;
-            margin-right: 6px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .block-fg { background-color: #bc13fe; box-shadow: 0 0 8px #bc13fe; }  
-        .block-rm { background-color: #000; border-color: #666; }             
-        .block-capital { background-color: #ffd700; box-shadow: 0 0 8px #ffd700; }  
-        .block-construction { background-color: #00ff88; box-shadow: 0 0 8px #00ff88; }  
-
         .nav-item {
             position: relative;  
             display: flex;
@@ -223,28 +188,28 @@
             <div class="nav-panel-container">
             
                 <div class="nav-list">
-                    
+    
                     <div class="nav-item" onclick="window.focusLocation(30.57, 104.06, 'chengdu')" data-id="chengdu">
                         <div class="nav-row top">
                             <span class="nav-title">CHENGDU</span>
                         </div>
                     </div>
                     
-                    <div class="nav-item" onclick="window.focusLocation(10.82, 106.62, 'vietnam')" data-id="vietnam">
+                    <div class="nav-item" onclick="window.focusLocation(-27.47, 153.02, 'brisbane')" data-id="brisbane">
                         <div class="nav-row top">
-                            <span class="nav-title">VIETNAM</span>
+                            <span class="nav-title">Brisbane</span>
                         </div>
                     </div>
                     
-                    <div class="nav-item" onclick="window.focusLocation(3.13, 101.68, 'malaysia')" data-id="malaysia">
+                    <div class="nav-item" onclick="window.focusLocation(40.44, -79.99, 'pittsburgh')" data-id="pittsburgh">
                         <div class="nav-row top">
-                            <span class="nav-title">MALAYSIA</span>
+                            <span class="nav-title">Pittsburgh</span>
                         </div>
                     </div>
                     
-                    <div class="nav-item" onclick="window.focusLocation(9.92, -84.09, 'costarica')" data-id="costarica">
+                    <div class="nav-item" onclick="window.focusLocation(34.05, -118.24, 'la')" data-id="la">
                         <div class="nav-row top">
-                            <span class="nav-title">COSTA RICA</span>
+                            <span class="nav-title">Los Angeles</span>
                         </div>
                     </div>
                     
@@ -434,10 +399,17 @@
         }
 
         function initMarkers() {
+            // 成都
             addMarker(30.57, 104.06, 'chengdu');    
-            addMarker(3.13, 101.68, 'malaysia');    
-            addMarker(10.82, 106.62, 'vietnam');    
-            addMarker(9.92, -84.09, 'costarica');   
+            
+            // 布里斯班 (原代码是越南胡志明市坐标)
+            addMarker(-27.47, 153.02, 'brisbane');   
+            
+            // 匹兹堡 (原代码是吉隆坡坐标)
+            addMarker(40.44, -79.99, 'pittsburgh');  
+            
+            // 洛杉矶 (原代码是哥斯达黎加坐标)
+            addMarker(34.05, -118.24, 'la');
         }
 
         window.focusLocation = function(lat, lon, id) {

@@ -1,6 +1,7 @@
 // scripts/inject_cv.js
 
 hexo.extend.injector.register('head_end', `
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
   <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
     <script type="importmap">
       {
@@ -890,6 +891,81 @@ hexo.extend.injector.register('head_end', `
     #separator {
         display: none !important;
     }
+
+    /* === 新增：地球右侧控制按钮组 === */
+    .earth-controls {
+        position: absolute;
+        top: 50%;
+        right: 10%; /* 距离右边的距离 */
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 20px; /* 按钮之间的间距 */
+        z-index: 100; /* 确保在地球上面 */
+        pointer-events: auto !important; /* 关键：强制开启点击，覆盖父级的 none */
+        opacity: 0;
+        animation: fadeInRight 1s ease 1s forwards; /* 延时进场动画 */
+    }
+
+    .earth-btn {
+        background: rgba(255, 255, 255, 0.05); /* 极淡的透明背景 */
+        border: 1px solid rgba(255, 255, 255, 0.2); /* 细边框 */
+        color: rgba(255, 255, 255, 0.8);
+        padding: 12px 24px;
+        border-radius: 50px; /* 圆角 */
+        cursor: pointer;
+        backdrop-filter: blur(10px); /* 毛玻璃模糊 */
+        -webkit-backdrop-filter: blur(10px);
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 500;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        width: fit-content;
+        min-width: 160px; /* 统一最小宽度 */
+    }
+
+    /* 按钮悬停效果 */
+    .earth-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: #fff;
+        transform: translateX(-5px); /* 向左轻微浮动 */
+        box-shadow: 0 0 20px rgba(0, 242, 255, 0.3); /* 青色发光，呼应地球边缘光 */
+    }
+
+    /* 按钮图标颜色 */
+    .earth-btn i {
+        color: #00f2ff; /* 青色图标 */
+        font-size: 16px;
+    }
+
+    @keyframes fadeInRight {
+        from { opacity: 0; transform: translate(30px, -50%); }
+        to { opacity: 1; transform: translate(0, -50%); }
+    }
+
+    /* 移动端适配：按钮放到底部或者调整位置 */
+    @media (max-width: 768px) {
+        .earth-controls {
+            top: auto;
+            bottom: 10%;
+            right: 50%;
+            transform: translateX(50%);
+            flex-direction: row; /* 手机上改为横排 */
+            width: 90%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .earth-btn {
+            min-width: auto;
+            padding: 10px 16px;
+            font-size: 13px;
+        }
+    }
   </style>
 `);
 
@@ -1186,8 +1262,34 @@ hexo.extend.injector.register('body_end', `
                       <div class="cv-desc">Designed a large-scale recommendation platform with real-time APIs, distributed data pipelines, and MLOps automation to support high-throughput personalization at scale.</div>
                     </div>
                   </a>
+                  
                   <!-- 3D Earth Container Hook -->
-                  <div id="scene-container"></div>
+                  <div style="position: relative; width: 100%; height: 100vh; margin-top: 50px;">
+                      
+                      <div id="scene-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0;"></div>
+                      
+                      <div class="earth-controls">
+                          <button class="earth-btn" onclick="window.focusLocation(30.57, 104.06, 'chengdu')" data-id="chengdu">
+                              <i class="fa-solid fa-user-astronaut"></i> CHENGDU
+                          </button>
+                          
+                          <button class="earth-btn" onclick="window.focusLocation(-27.47, 153.02, 'brisbane')" data-id="brisbane">
+                              <i class="fa-solid fa-rocket"></i> Brisbane
+                          </button>
+                          
+                          <button class="earth-btn" onclick="window.focusLocation(40.44, -79.99, 'pittsburgh')" data-id="pittsburgh">
+                              <i class="fa-solid fa-rocket"></i> Pittsburgh
+                          </button>
+
+                          <button class="earth-btn" onclick="window.focusLocation(34.05, -118.24, 'la')" data-id="la">
+                              <i class="fa-solid fa-rocket"></i> Los Angeles
+                          </button>
+                          <button class="earth-btn" onclick="window.resetView()">
+                              <i class="fa-solid fa-rocket"></i> SYSTEM ORBIT VIEW
+                          </button>
+                      </div>
+
+                  </div>
 
                 </div>
               </div>
@@ -1260,199 +1362,326 @@ hexo.extend.injector.register('body_end', `
   </script>
 
   <script type="module">
-        import * as THREE from 'three';
+    import * as THREE from 'three';
 
-        let scene, camera, renderer;
-        let earthGroup; 
-        let stars;
-        let isSceneInit = false;
+    // 1. 定义全局变量
+    let scene, camera, renderer;
+    let earthGroup; 
+    let stars;
+    let isSceneInit = false;
+    let isAutoRotating = true; // 新增：控制自动旋转
+    const siteMarkers = {};    // 新增：存储地点标记
+    let currentPulseTweens = []; // 新增：存储当前的脉冲动画
+    
+    const CONFIG = {
+        earthRadius: 10,
+        glowRadius: 10.3, 
+        rotateSpeed: 0.0005 
+    };
+
+    // 2. 初始化主函数
+    function initEarth3D() {
+        if (document.getElementById('scene-container-canvas')) return; 
         
-        const CONFIG = {
-            earthRadius: 10,
-            glowRadius: 10.3, 
-            rotateSpeed: 0.0005 
-        };
+        const container = document.getElementById('scene-container');
+        if (!container) return;
 
-        function initEarth3D() {
-            if (document.getElementById('scene-container-canvas')) return; 
-            
-            const container = document.getElementById('scene-container');
-            if (!container) return;
-
-            // 1. Scene
-            scene = new THREE.Scene();
-            
-            // 2. Camera
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-            camera.position.set(0, 0, 32); 
-            
-            // 3. Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(width, height);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.domElement.id = 'scene-container-canvas';
-            container.appendChild(renderer.domElement);
-
-            // 4. Lights
-            const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
-            sunLight.position.set(-50, 20, 30); 
-            scene.add(sunLight);
-            
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.3); 
-            scene.add(ambientLight);
-            
-            const backLight = new THREE.SpotLight(0x00f2ff, 1.5); 
-            backLight.position.set(0, 20, -50);
-            scene.add(backLight);
-
-            // 5. Group
-            earthGroup = new THREE.Group();
-            earthGroup.rotation.z = 23.5 * Math.PI / 180; 
-            scene.add(earthGroup);
-
-            // 6. Objects
-            createStars();
-            createRealisticEarth();
-            createAtmosphere();
-            
-            // 7. Resize
-            window.addEventListener('resize', onWindowResize);
-            
-            // 8. Animation
-            animate();
-            
-            isSceneInit = true;
-            
-            // Initial Check for scroll
-            checkScroll();
-            window.addEventListener('scroll', checkScroll);
-        }
-
-        // ... (createRealisticEarth, etc. unchanged)
+        // Scene
+        scene = new THREE.Scene();
         
-        function createRealisticEarth() {
-            const geometry = new THREE.SphereGeometry(CONFIG.earthRadius, 64, 64);
-            const loader = new THREE.TextureLoader();
-
-            const material = new THREE.MeshPhongMaterial({
-                map: loader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'),
-                bumpMap: loader.load('https://unpkg.com/three-globe/example/img/earth-topology.png'),
-                bumpScale: 0.15,
-                specularMap: loader.load('https://unpkg.com/three-globe/example/img/earth-water.png'),
-                specular: new THREE.Color(0x333333),
-                shininess: 15
-            });
-
-            const earth = new THREE.Mesh(geometry, material);
-            earthGroup.add(earth);
-        }
-
-        function createAtmosphere() {
-            const vertexShader = \`
-                varying vec3 vNormal;
-                void main() {
-                    vNormal = normalize(normalMatrix * normal);
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            \`;
-            const fragmentShader = \`
-                varying vec3 vNormal;
-                void main() {
-                    float intensity = pow(0.65 - dot(vNormal, vec3(0, 0, 1.0)), 3.0);
-                    gl_FragColor = vec4(0.0, 0.8, 1.0, 1.0) * intensity * 1.5;
-                }
-            \`;
-
-            const geometry = new THREE.SphereGeometry(CONFIG.glowRadius, 64, 64);
-            const material = new THREE.ShaderMaterial({
-                vertexShader,
-                fragmentShader,
-                blending: THREE.AdditiveBlending,
-                side: THREE.BackSide,
-                transparent: true,
-                depthWrite: false
-            });
-
-            const atmosphere = new THREE.Mesh(geometry, material);
-            earthGroup.add(atmosphere);
-        }
-
-        function createStars() {
-            const geometry = new THREE.BufferGeometry();
-            const count = 3000;
-            const posArray = new Float32Array(count * 3);
-            for(let i=0; i<count*3; i++) {
-                posArray[i] = (Math.random() - 0.5) * 600; 
-            }
-            geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-            const material = new THREE.PointsMaterial({
-                size: 0.5, color: 0xffffff, transparent: true, opacity: 0.6
-            });
-            stars = new THREE.Points(geometry, material);
-            scene.add(stars);
-        }
-
-        function onWindowResize() {
-            if (!camera || !renderer) return;
-            
-            const container = document.getElementById('scene-container');
-            if (!container) return;
-
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-            renderer.setSize(width, height);
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            if (earthGroup) {
-                earthGroup.rotation.y += CONFIG.rotateSpeed;
-            }
-            if (renderer && scene && camera) {
-                renderer.render(scene, camera);
-            }
-        }
+        // Camera
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+        camera.position.set(0, 0, 32); 
         
-        function checkScroll() {
-            const container = document.getElementById('scene-container');
-            if (!container) return;
-            
-            const rect = container.getBoundingClientRect();
-            const viewHeight = window.innerHeight;
-            
-            // Trigger when the top of the container is within the viewport (or close to it)
-            // As we scroll down, rect.top decreases. When rect.top < viewHeight, it's entering view.
-            
-            if (rect.top <= viewHeight * 0.9) { 
-                // Fade in
-                container.style.opacity = '1';
-                document.body.classList.add('starry-night');
-            } else {
-                // Fade out
-                container.style.opacity = '0';
-                document.body.classList.remove('starry-night');
-            }
-        }
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.domElement.id = 'scene-container-canvas';
+        container.appendChild(renderer.domElement);
 
-        // Initialize when DOM is ready or after injection
-        // Since the container is injected dynamically by runCVInjection, we need to wait for it.
+        // Lights
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        sunLight.position.set(-50, 20, 30); 
+        scene.add(sunLight);
         
-        const observer = new MutationObserver((mutations) => {
-            if (document.getElementById('scene-container') && !document.getElementById('scene-container-canvas')) {
-                initEarth3D();
-            }
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.3); 
+        scene.add(ambientLight);
+        
+        const backLight = new THREE.SpotLight(0x00f2ff, 1.5); 
+        backLight.position.set(0, 20, -50);
+        scene.add(backLight);
+
+        // Group
+        earthGroup = new THREE.Group();
+        earthGroup.rotation.z = 23.5 * Math.PI / 180; 
+        if (window.innerWidth > 768) {
+            earthGroup.position.x = -1; 
+        } else {
+            earthGroup.position.y = -6; 
+        }
+        scene.add(earthGroup);
+
+        // Objects
+        createStars();
+        createRealisticEarth();
+        createAtmosphere();
+        
+        // --- 新增：初始化红点标记 ---
+        initMarkers();
+        
+        // Resize
+        window.addEventListener('resize', onWindowResize);
+        
+        // Animation
+        animate();
+        
+        isSceneInit = true;
+        
+        // Initial Check for scroll
+        checkScroll();
+        window.addEventListener('scroll', checkScroll);
+    }
+
+    function createRealisticEarth() {
+        const geometry = new THREE.SphereGeometry(CONFIG.earthRadius, 64, 64);
+        const loader = new THREE.TextureLoader();
+
+        const material = new THREE.MeshPhongMaterial({
+            map: loader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'),
+            bumpMap: loader.load('https://unpkg.com/three-globe/example/img/earth-topology.png'),
+            bumpScale: 0.15,
+            specularMap: loader.load('https://unpkg.com/three-globe/example/img/earth-water.png'),
+            specular: new THREE.Color(0x333333),
+            shininess: 15
         });
-        observer.observe(document.body, { childList: true, subtree: true });
 
-        // Also try immediately
-        // setTimeout(initEarth3D, 2000); 
+        const earth = new THREE.Mesh(geometry, material);
+        earthGroup.add(earth);
+    }
+
+    function createAtmosphere() {
+        const vertexShader = \`
+            varying vec3 vNormal;
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        \`;
+        const fragmentShader = \`
+            varying vec3 vNormal;
+            void main() {
+                float intensity = pow(0.65 - dot(vNormal, vec3(0, 0, 1.0)), 3.0);
+                gl_FragColor = vec4(0.0, 0.8, 1.0, 1.0) * intensity * 1.5;
+            }
+        \`;
+
+        const geometry = new THREE.SphereGeometry(CONFIG.glowRadius, 64, 64);
+        const material = new THREE.ShaderMaterial({
+            vertexShader,
+            fragmentShader,
+            blending: THREE.AdditiveBlending,
+            side: THREE.BackSide,
+            transparent: true,
+            depthWrite: false
+        });
+
+        const atmosphere = new THREE.Mesh(geometry, material);
+        earthGroup.add(atmosphere);
+    }
+
+    function createStars() {
+        const geometry = new THREE.BufferGeometry();
+        const count = 3000;
+        const posArray = new Float32Array(count * 3);
+        for(let i=0; i<count*3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 600; 
+        }
+        geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const material = new THREE.PointsMaterial({
+            size: 0.5, color: 0xffffff, transparent: true, opacity: 0.6
+        });
+        stars = new THREE.Points(geometry, material);
+        scene.add(stars);
+    }
+
+    // --- 新增：坐标转换函数 ---
+    function latLonToVector3(lat, lon, radius) {        
+        const phi = (90 - lat) * (Math.PI / 180);
+        const theta = (lon + 180) * (Math.PI / 180);
+        const x = -(radius * Math.sin(phi) * Math.cos(theta));
+        const z = (radius * Math.sin(phi) * Math.sin(theta));
+        const y = (radius * Math.cos(phi));
+        return new THREE.Vector3(x, y, z);
+    }
+
+    // --- 新增：添加标记点函数 ---
+    function addMarker(lat, lon, id) {
+        const pos = latLonToVector3(lat, lon, CONFIG.earthRadius);            
+        // 标记线
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([
+            pos, 
+            pos.clone().multiplyScalar(1.25)
+        ]);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0xff0055, transparent: true, opacity: 0.8 });
+        const line = new THREE.Line(lineGeo, lineMat);
+        earthGroup.add(line);
+        
+        // 标记点
+        const dotGeo = new THREE.SphereGeometry(0.12, 16, 16);
+        const dotMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+        const dot = new THREE.Mesh(dotGeo, dotMat);
+        dot.position.copy(pos.clone().multiplyScalar(1.25));
+        earthGroup.add(dot);
+        
+        // 底部光圈
+        const baseGeo = new THREE.RingGeometry(0.1, 0.3, 32);
+        const baseMat = new THREE.MeshBasicMaterial({ 
+            color: 0xff0055, side: THREE.DoubleSide, transparent:true, opacity:0.5 
+        });
+        const base = new THREE.Mesh(baseGeo, baseMat);
+        base.position.copy(pos.clone().multiplyScalar(1.005));
+        base.lookAt(new THREE.Vector3(0,0,0)); 
+        earthGroup.add(base);
+
+        siteMarkers[id] = dot;
+    }
+
+    // --- 新增：初始化所有坐标 ---
+    function initMarkers() {
+        addMarker(30.57, 104.06, 'chengdu');    
+        addMarker(-27.47, 153.02, 'brisbane');   
+        addMarker(40.44, -79.99, 'pittsburgh');  
+        addMarker(34.05, -118.24, 'la');
+    }
+
+    // --- 新增：暴露给 Window 的点击事件 ---
+    window.focusLocation = function(lat, lon, id) {
+        if(!earthGroup || !window.TWEEN) return;
+        
+        isAutoRotating = false;
+        
+        // 计算目标旋转角度
+        const targetY = - (lon * Math.PI / 180) - Math.PI / 2;
+        const targetX = lat * (Math.PI / 180);
+        
+        // 地球旋转动画
+        new window.TWEEN.Tween(earthGroup.rotation)
+            .to({ x: targetX, y: targetY, z: 0 }, 1500) 
+            .easing(window.TWEEN.Easing.Cubic.InOut)
+            .start();
+
+        // 清除之前的脉冲动画
+        if (currentPulseTweens.length > 0) {
+            currentPulseTweens.forEach(t => t.stop());
+            currentPulseTweens = [];
+        }
+
+        // 重置所有标记点状态
+        for (const key in siteMarkers) {
+            siteMarkers[key].scale.set(1, 1, 1);
+            siteMarkers[key].material.color.setHex(0xff0055); 
+            siteMarkers[key].material.opacity = 1;  
+        }
+
+        // 对选中点添加脉冲动画
+        const targetDot = siteMarkers[id];
+        if (targetDot) {
+            const endColor = { r: 0.7, g: 0.0, b: 1.0 }; // 变成紫色
+            
+            const scaleTween = new window.TWEEN.Tween(targetDot.scale)
+                .to({ x: 3.0, y: 3.0, z: 3.0 }, 1000) 
+                .yoyo(true)
+                .repeat(Infinity)
+                .easing(window.TWEEN.Easing.Quadratic.InOut)
+                .start();
+            
+            const colorTween = new window.TWEEN.Tween(targetDot.material.color)
+                .to({ r: endColor.r, g: endColor.g, b: endColor.b }, 1000) 
+                .yoyo(true)
+                .repeat(Infinity)
+                .easing(window.TWEEN.Easing.Quadratic.InOut)
+                .start();
+                
+            currentPulseTweens.push(scaleTween, colorTween);
+        }
+    };
+
+    window.resetView = function() {
+        if(!earthGroup || !window.TWEEN) return;
+        
+        isAutoRotating = true; // 恢复自动旋转
+
+        if (currentPulseTweens.length > 0) {
+            currentPulseTweens.forEach(t => t.stop());
+            currentPulseTweens = [];
+        }
+        // 重置点颜色
+        for (const key in siteMarkers) {
+            siteMarkers[key].scale.set(1, 1, 1);
+            siteMarkers[key].material.color.setHex(0xff0055);
+        }
+        
+        // 恢复地球默认角度
+        new window.TWEEN.Tween(earthGroup.rotation)
+            .to({ x: 0, z: 23.5 * Math.PI / 180 }, 1000)
+            .start();
+    };
+
+    function onWindowResize() {
+        const container = document.getElementById('scene-container');
+        if(!container || !camera || !renderer) return;
+        
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+    }
+
+    function animate(time) {
+        requestAnimationFrame(animate);
+
+        // --- 新增：更新 TWEEN 动画 ---
+        if (window.TWEEN) {
+            window.TWEEN.update(time);
+        }
+
+        if (isAutoRotating && earthGroup) {
+            earthGroup.rotation.y += CONFIG.rotateSpeed;
+        }
+        if (renderer && scene && camera) {
+            renderer.render(scene, camera);
+        }
+    }
+    
+    function checkScroll() {
+        const container = document.getElementById('scene-container');
+        if (!container) return;
+        
+        const rect = container.getBoundingClientRect();
+        const viewHeight = window.innerHeight;
+        
+        if (rect.top <= viewHeight * 0.9) { 
+            container.style.opacity = '1';
+            document.body.classList.add('starry-night');
+        } else {
+            container.style.opacity = '0';
+            document.body.classList.remove('starry-night');
+        }
+    }
+    
+    // 观察 DOM 变化以初始化地球
+    const observer = new MutationObserver((mutations) => {
+        if (document.getElementById('scene-container') && !document.getElementById('scene-container-canvas')) {
+            initEarth3D();
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   </script>
 `);
