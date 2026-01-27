@@ -853,10 +853,7 @@ hexo.extend.injector.register('head_end', `
     @keyframes spoke { from { transform: rotate(0); } to { transform: rotate(-1turn); } }
 
     /* === 书签页 (Bookmarks) 样式修正 (修复版) === */
-
-    /* 1. 增宽侧边栏 & 允许文字换行 */
     @media (min-width: 768px) {
-        /* Redefine 原本是 w-48 (192px)，我们改成 300px 甚至更宽 */
         .md\:w-48 {
             width: 250px !important; 
             flex-basis: 300px !important;
@@ -892,6 +889,7 @@ hexo.extend.injector.register('head_end', `
         display: none !important;
     }
 
+
     /* === 地球控制按钮组 === */
     .earth-controls {
         position: absolute;
@@ -906,59 +904,149 @@ hexo.extend.injector.register('head_end', `
         opacity: 0;
         animation: fadeInRight 1s ease 1s forwards;  
     }
-    .earth-btn {
-        background: rgba(255, 255, 255, 0.05); /* 极淡的透明背景 */
-        border: 1px solid rgba(255, 255, 255, 0.2); /* 细边框 */
-        color: rgba(255, 255, 255, 0.8);
-        padding: 12px 24px;
-        border-radius: 50px; /* 圆角 */
-        cursor: pointer;
-        backdrop-filter: blur(10px); /* 毛玻璃模糊 */
-        -webkit-backdrop-filter: blur(10px);
-        font-family: inherit;
-        font-size: 15px;
-        font-weight: 500;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        text-decoration: none;
-        width: fit-content;
-        min-width: 160px; /* 统一最小宽度 */
+    /* === Uiverse Tooltip Button 样式 (适配版) === */
+    .tooltip-container {
+      --background: #333333;
+      --color: #404040;
+      
+      position: relative;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      font-size: 16px; 
+      font-weight: 600;
+      color: var(--color);
+
+      padding: 0.7em 1.8em;
+      border-radius: 50px; /* 改为圆角更符合整体风格 */
+      text-transform: uppercase;
+      height: 50px; /* 高度微调 */
+      width: 170px; /* 宽度微调 */
+      display: grid;
+      place-items: center;
+
+      background: rgba(255,255,255,0.65) !important;
+      border: 1px solid #e5e5e5;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
-    /* 按钮悬停效果 */
-    .earth-btn:hover {
-        background: rgba(255, 255, 255, 0.15);
-        border-color: rgba(255, 255, 255, 0.5);
-        color: #fff;
-        transform: translateX(-5px); /* 向左轻微浮动 */
-        box-shadow: 0 0 20px rgba(0, 242, 255, 0.3); /* 青色发光，呼应地球边缘光 */
+    .text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      transform-origin: -100%;
+      transform: scale(1);
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
     }
-    /* 按钮图标颜色 */
-    .earth-btn i {
-        color: #00f2ff; /* 青色图标 */
-        font-size: 16px;
+    /* 滑动出来的图标层 */
+    .tooltip-container span:last-child {
+      position: absolute;
+      top: 0%;
+      left: 100%;
+      width: 100%;
+      height: 100%;
+      border-radius: 50px; /* 保持圆角一致 */
+      opacity: 1;
+
+      background-color: var(--background);
+      color: #ffffff; 
+
+      z-index: -1;
+      border: 2px solid var(--color);
+      transform: scale(0);
+      transform-origin: 0;
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      display: grid;
+      place-items: center;
+      font-size: 20px; /* 图标大一点 */
+    }
+    /* 上方弹出的 Tooltip */
+    .tooltip {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.3em 0.6em;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      
+      background: var(--background);
+      color: rgba(255,255,255,0.65) !important;
+      
+      z-index: -1;
+      border-radius: 8px;
+      scale: 0;
+      transform-origin: 0 0;
+      text-transform: capitalize;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: rgba(0, 0, 0, 0.25) 0 8px 15px;
+      white-space: nowrap;
+    }
+    .tooltip::before {
+      position: absolute;
+      content: "";
+      height: 0.6em;
+      width: 0.6em;
+      bottom: -0.2em;
+      left: 50%;
+      transform: translate(-50%) rotate(45deg);
+      background: var(--color);
+    }
+    /* Hover 状态 */
+    .tooltip-container:hover .tooltip {
+      top: -120%; /* 稍微提得更高一点 */
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      scale: 1;
+      animation: shake 0.5s ease-in-out both;
+    }
+    .tooltip-container:hover {
+      box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+      border-color: transparent;
+    }
+    .tooltip-container:hover span:last-child {
+      transform: scale(1);
+      left: 0;
+    }
+    .tooltip-container:hover .text {
+      opacity: 0;
+      top: 0%;
+      left: 100%;
+      transform: scale(0);
+    }
+    @keyframes shake {
+      0% { rotate: 0; }
+      25% { rotate: 7deg; }
+      50% { rotate: -7deg; }
+      75% { rotate: 1deg; }
+      100% { rotate: 0; }
     }
     @keyframes fadeInRight {
         from { opacity: 0; transform: translate(30px, -50%); }
         to { opacity: 1; transform: translate(0, -50%); }
     }
-    /* 移动端适配：按钮放到底部或者调整位置 */
     @media (max-width: 768px) {
         .earth-controls {
             top: auto;
-            bottom: 10%;
-            right: 50%;
-            transform: translateX(50%);
-            flex-direction: row; 
-            width: 90%;
+            bottom: 30px;
+            right: 0;
+            left: 0;
+            transform: none;
+            flex-direction: row;
             justify-content: center;
             flex-wrap: wrap;
+            padding: 0 10px;
         }
-        .earth-btn {
-            min-width: auto;
-            padding: 10px 16px;
-            font-size: 13px;
+        .tooltip-container {
+            width: 140px;  
+            height: 45px;
+            font-size: 14px;
         }
     }
   </style>
@@ -1153,25 +1241,43 @@ hexo.extend.injector.register('body_end', `
               <!-- 3D Earth Container Hook -->
               <div style="position: relative; width: 100%; height: 100vh; margin-top: 50px;">
                   <div id="scene-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0;"></div>
+                  
                   <div class="earth-controls">
-                      <button class="earth-btn" onclick="window.focusLocation(30.57, 104.06, 'chengdu')" data-id="chengdu">
-                          <i class="fa-solid fa-city"></i> CHENGDU
-                      </button>
-                      
-                      <button class="earth-btn" onclick="window.focusLocation(-27.47, 153.02, 'brisbane')" data-id="brisbane">
-                          <i class="fa-solid fa-bridge-water"></i> Brisbane
-                      </button>
-                      
-                      <button class="earth-btn" onclick="window.focusLocation(40.44, -79.99, 'pittsburgh')" data-id="pittsburgh">
-                          <i class="fa-solid fa-industry"></i> Pittsburgh
-                      </button>
+                      <div class="tooltip-container" onclick="window.focusLocation(30.57, 104.06, 'chengdu')">
+                          <span class="tooltip">I was born here, this is my hometown</span>
+                          <span class="text">Chengdu</span>
+                          <span>🐼 🌶️ 🍲</span>
+                      </div>
 
-                      <button class="earth-btn" onclick="window.focusLocation(34.05, -118.24, 'la')" data-id="la">
-                          <i class="fa-solid fa-film"></i> Los Angeles
-                      </button>
-                      <button class="earth-btn" onclick="window.resetView()">
-                          <i class="fa-solid fa-rocket"></i> ORBIT
-                      </button>
+                      <div class="tooltip-container" onclick="window.focusLocation(-34.93, 138.60, 'adelaide')">
+                          <span class="tooltip">Came here alone at 15 for high school</span>
+                          <span class="text">Adelaide</span>
+                          <span>🍷 🦘 🌊</span>
+                      </div>
+
+                      <div class="tooltip-container" onclick="window.focusLocation(-27.47, 153.02, 'brisbane')">
+                          <span class="tooltip">Where my journey in CS and DS began</span>
+                          <span class="text">Brisbane</span>
+                          <span>🏖️ ☀️ 🐨</span>
+                      </div>
+
+                      <div class="tooltip-container" onclick="window.focusLocation(40.44, -79.99, 'pittsburgh')">
+                          <span class="tooltip">Earned my degree at a world-leading DS institution</span>
+                          <span class="text">Pittsburgh</span>
+                          <span>🏙️ 🌉 ⚙️</span>
+                      </div>
+
+                      <div class="tooltip-container" onclick="window.focusLocation(34.05, -118.24, 'la')">
+                          <span class="tooltip">I lived for six months after graduation, I loved Here</span>
+                          <span class="text">Los Angeles</span>
+                          <span>🌴 🌅 🎬</span>
+                      </div>
+
+                      <div class="tooltip-container" onclick="window.resetView()">
+                          <span class="tooltip">Reset View</span>
+                          <span class="text">Orbit View</span>
+                          <span><i class="fa-solid fa-satellite"></i></span>
+                      </div>
                   </div>
               </div>
 
@@ -1548,7 +1654,8 @@ hexo.extend.injector.register('body_end', `
 
     // --- 新增：初始化所有坐标 ---
     function initMarkers() {
-        addMarker(30.57, 104.06, 'chengdu');    
+        addMarker(30.57, 104.06, 'chengdu');
+        addMarker(-34.93, 138.60, 'adelaide');
         addMarker(-27.47, 153.02, 'brisbane');   
         addMarker(40.44, -79.99, 'pittsburgh');  
         addMarker(34.05, -118.24, 'la');
