@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intel Global Sites</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+            background-color: #000205; font-family: 'Rajdhani', sans-serif; color: #fff;
+        }
+
+        /* Background */
+        .aurora-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                radial-gradient(circle at 20% 100%, rgba(0, 100, 255, 0.1), transparent 50%),
+                radial-gradient(circle at 80% 0%, rgba(0, 255, 200, 0.05), transparent 40%),
+                linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,10,30,0.9) 100%);
+            z-index: 0; pointer-events: none;
+        }
+
+        /* 3D 容器 */
+        #scene-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+        }
+
+        /* UI 交互层 */
+        .ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; pointer-events: none;
+            display: flex; justify-content: space-between; padding: 40px; box-sizing: border-box;
+        }
+
+        .brand-logo {
+            height: 75px;      
+            width: auto;   
+            display: block;     
+            margin-bottom: 10px; 
+            padding-bottom: 10px; 
+            filter: drop-shadow(0 0 5px rgba(0, 242, 255, 0.8));
+        }
+
+        .nav-panel-container {
+            margin-top: 20px;
+            pointer-events: auto;
+            width: 345px;  
+            background: rgba(10, 20, 35, 0.85);  
+            border: 2px solid #00f2ff; 
+            box-shadow: 0 0 25px rgba(0, 242, 255, 0.2), inset 0 0 20px rgba(0, 242, 255, 0.1);
+            padding: 25px;
+            backdrop-filter: blur(12px);  
+            border-radius: 4px;
+        }
+
+        .legend-box {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid transparent;
+            background-image: linear-gradient(to right, transparent, rgba(0, 242, 255, 0.3), transparent);
+            background-size: 100% 1px;
+            background-repeat: no-repeat;
+            background-position: bottom;
+        }
+        .legend-title {
+            font-size: 1.2rem; 
+            font-weight: 600; 
+            color: rgba(0, 242, 255, 0.9);  
+            margin-bottom: 12px; 
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+        }
+        .legend-items {
+            display: flex; flex-wrap: wrap; gap: 12px;
+        }
+        .legend-item {
+            display: flex; align-items: center; font-size: 1.0rem; color: #d0e0ff;
+            font-weight: 500;
+        }
+
+        .status-block {
+            width: 12px; height: 12px;
+            margin-right: 6px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .block-fg { background-color: #bc13fe; box-shadow: 0 0 8px #bc13fe; }  
+        .block-rm { background-color: #000; border-color: #666; }             
+        .block-capital { background-color: #ffd700; box-shadow: 0 0 8px #ffd700; }  
+        .block-construction { background-color: #00ff88; box-shadow: 0 0 8px #00ff88; }  
+
+        .nav-item {
+            position: relative;  
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            padding: 12px 18px;            
+            background: rgba(5, 12, 20, 0.8); 
+            border: 1px solid rgba(0, 242, 255, 0.1); 
+            border-left: 3px solid rgba(0, 242, 255, 0.3);  
+            
+            border-radius: 7px;  
+            overflow: hidden;    
+            transition: border-color 0.3s ease, transform 0.2s ease;
+            --x: 50%;
+            --y: 50%;
+        }
+        .nav-item:hover {
+            border-color: rgba(0, 242, 255, 0.5);
+            border-left-color: #00f2ff;
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(
+                600px circle at var(--x) var(--y), 
+                rgba(0, 242, 255, 0.15), 
+                transparent 40%
+            );
+            opacity: 0;  
+            transition: opacity 0.4s ease;  
+            z-index: 0;  
+            pointer-events: none; 
+        }
+        .nav-item:hover::before {
+            opacity: 1;
+        }
+        .nav-item > * {
+            position: relative;
+            z-index: 2;
+        }
+        .nav-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .nav-title { 
+            font-size: 1.4rem;  
+            font-weight: 700; 
+            color: #ffffff; 
+            letter-spacing: 1.5px; 
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+            text-transform: uppercase;
+        }
+        .nav-sub { 
+            font-size: 1.0rem; 
+            color: #7a8c9e;  
+            font-weight: 500;
+        }
+        .nav-data {
+            font-size: 1.0rem;
+            color: #aebcd0;
+            text-align: right;
+            letter-spacing: 0.5px;
+        }
+        .nav-data .highlight-val {
+            color: #00f2ff;  
+            font-weight: 700;
+            font-size: 1.0rem; 
+            margin-left: 4px;
+            text-shadow: 0 0 8px rgba(0, 242, 255, 0.4);
+        }
+        .nav-blocks { 
+            display: flex; 
+            gap: 4px; 
+        }
+        .nav-blocks .status-block { 
+            margin-right: 0;  
+            width: 10px;      
+            height: 10px;
+        }
+        .nav-info-col {
+            display: flex;
+            flex-direction: column;  
+            justify-content: center;
+            align-items: flex-start;  
+            line-height: 1.2;  
+        }
+        .nav-code {
+            font-size: 1.0rem;
+            font-weight: 700;   
+            color: #d0e0ff;    
+        }
+        .nav-desc {
+            font-size: 0.9rem;  
+            color: #7a8c9e;     
+            margin-top: 2px;    
+            white-space: nowrap;  
+        }
+        .orbit-btn { justify-content: center; margin-top: 20px; border-left: 1px solid rgba(0, 242, 255, 0.3); }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="aurora-bg"></div>
+    <div id="scene-container"></div>
+
+    <div class="ui-layer">
+        <div>
+            <!-- Nav Panel -->
+            <div class="nav-panel-container">
+            
+                <div class="nav-list">
+                    
+                    <div class="nav-item" onclick="window.focusLocation(30.57, 104.06, 'chengdu')" data-id="chengdu">
+                        <div class="nav-row top">
+                            <span class="nav-title">CHENGDU</span>
+                        </div>
+                    </div>
+                    
+                    <div class="nav-item" onclick="window.focusLocation(10.82, 106.62, 'vietnam')" data-id="vietnam">
+                        <div class="nav-row top">
+                            <span class="nav-title">VIETNAM</span>
+                        </div>
+                    </div>
+                    
+                    <div class="nav-item" onclick="window.focusLocation(3.13, 101.68, 'malaysia')" data-id="malaysia">
+                        <div class="nav-row top">
+                            <span class="nav-title">MALAYSIA</span>
+                        </div>
+                    </div>
+                    
+                    <div class="nav-item" onclick="window.focusLocation(9.92, -84.09, 'costarica')" data-id="costarica">
+                        <div class="nav-row top">
+                            <span class="nav-title">COSTA RICA</span>
+                        </div>
+                    </div>
+                    
+                    <div class="nav-item orbit-btn" onclick="window.resetView()">
+                        <span class="nav-title" style="font-size: 0.9rem;">&lt; SYSTEM ORBIT VIEW</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        let scene, camera, renderer;
+        let earthGroup; 
+        let isAutoRotating = true;
+        const siteMarkers = {}; 
+        let currentPulseTweens = [];
+
+        const CONFIG = {
+            earthRadius: 10,
+            glowRadius: 10.3, 
+            rotateSpeed: 0.0005
+        };
+
+        // --- Loading Manager ---
+        const loadingManager = new THREE.LoadingManager();
+        const progressFill = document.getElementById('progress-fill');
+        const loadingTxt = document.getElementById('loading-txt');
+        
+        loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
+            const percent = (itemsLoaded / itemsTotal) * 100;
+            if(progressFill) progressFill.style.width = percent + '%';
+        };
+        
+        loadingManager.onLoad = function() {
+            if(loadingTxt) loadingTxt.innerText = "SYSTEM READY";
+            setTimeout(() => {
+                const loaderEl = document.getElementById('loader');
+                if(loaderEl) {
+                    loaderEl.style.opacity = '0';
+                    setTimeout(() => { loaderEl.style.display = 'none'; }, 800);
+                }
+            }, 500);
+        };
+
+        function init() {
+            const container = document.getElementById('scene-container');
+            
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 32); 
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            container.appendChild(renderer.domElement);
+
+            const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
+            sunLight.position.set(-50, 20, 30);
+            scene.add(sunLight);
+            
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.3); 
+            scene.add(ambientLight);
+            
+            const backLight = new THREE.SpotLight(0x00f2ff, 1.5);
+            backLight.position.set(0, 20, -50);
+            scene.add(backLight);
+
+            earthGroup = new THREE.Group();
+            earthGroup.rotation.z = 23.5 * Math.PI / 180; 
+            scene.add(earthGroup);
+
+            createStars();
+            createRealisticEarth();
+            createAtmosphere();
+            
+            initMarkers();
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function createRealisticEarth() {
+            const geometry = new THREE.SphereGeometry(CONFIG.earthRadius, 64, 64);
+            const loader = new THREE.TextureLoader(loadingManager);
+
+            const material = new THREE.MeshPhongMaterial({
+                map: loader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'),
+                bumpMap: loader.load('https://unpkg.com/three-globe/example/img/earth-topology.png'),
+                bumpScale: 0.15,
+                specularMap: loader.load('https://unpkg.com/three-globe/example/img/earth-water.png'),
+                specular: new THREE.Color(0x333333),
+                shininess: 15
+            });
+
+            const earth = new THREE.Mesh(geometry, material);
+            earthGroup.add(earth);
+        }
+
+        function createAtmosphere() {
+            const vertexShader = `
+                varying vec3 vNormal;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `;
+            const fragmentShader = `
+                varying vec3 vNormal;
+                void main() {
+                    float intensity = pow(0.65 - dot(vNormal, vec3(0, 0, 1.0)), 3.0);
+                    gl_FragColor = vec4(0.0, 0.8, 1.0, 1.0) * intensity * 1.5;
+                }
+            `;
+
+            const geometry = new THREE.SphereGeometry(CONFIG.glowRadius, 64, 64);
+            const material = new THREE.ShaderMaterial({
+                vertexShader,
+                fragmentShader,
+                blending: THREE.AdditiveBlending,
+                side: THREE.BackSide,
+                transparent: true,
+                depthWrite: false
+            });
+
+            const atmosphere = new THREE.Mesh(geometry, material);
+            earthGroup.add(atmosphere);
+        }
+
+        function createStars() {
+            const geometry = new THREE.BufferGeometry();
+            const count = 3000;
+            const posArray = new Float32Array(count * 3);
+            for(let i=0; i<count*3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 600; 
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const material = new THREE.PointsMaterial({
+                size: 0.5, color: 0xffffff, transparent: true, opacity: 0.6
+            });
+            const stars = new THREE.Points(geometry, material);
+            scene.add(stars);
+        }
+
+
+        function latLonToVector3(lat, lon, radius) {        
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            const x = -(radius * Math.sin(phi) * Math.cos(theta));
+            const z = (radius * Math.sin(phi) * Math.sin(theta));
+            const y = (radius * Math.cos(phi));
+            
+            return new THREE.Vector3(x, y, z);
+        }
+
+        function addMarker(lat, lon, id) {
+            const pos = latLonToVector3(lat, lon, CONFIG.earthRadius);            
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([
+                pos, 
+                pos.clone().multiplyScalar(1.25)
+            ]);
+            const lineMat = new THREE.LineBasicMaterial({ color: 0xff0055, transparent: true, opacity: 0.8 });
+            const line = new THREE.Line(lineGeo, lineMat);
+            earthGroup.add(line);
+            const dotGeo = new THREE.SphereGeometry(0.12, 16, 16);
+            const dotMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+            const dot = new THREE.Mesh(dotGeo, dotMat);
+            dot.position.copy(pos.clone().multiplyScalar(1.25));
+            earthGroup.add(dot);
+            const baseGeo = new THREE.RingGeometry(0.1, 0.3, 32);
+            const baseMat = new THREE.MeshBasicMaterial({ 
+                color: 0xff0055, side: THREE.DoubleSide, transparent:true, opacity:0.5 
+            });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.copy(pos.clone().multiplyScalar(1.005));
+            base.lookAt(new THREE.Vector3(0,0,0)); 
+            earthGroup.add(base);
+
+            siteMarkers[id] = dot;
+        }
+
+        function initMarkers() {
+            addMarker(30.57, 104.06, 'chengdu');    
+            addMarker(3.13, 101.68, 'malaysia');    
+            addMarker(10.82, 106.62, 'vietnam');    
+            addMarker(9.92, -84.09, 'costarica');   
+        }
+
+        window.focusLocation = function(lat, lon, id) {
+            isAutoRotating = false;
+            const targetY = - (lon * Math.PI / 180) - Math.PI / 2;
+            const targetX = lat * (Math.PI / 180);
+            new TWEEN.Tween(earthGroup.rotation)
+                .to({ x: targetX, y: targetY, z: 0 }, 1500) 
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .start();
+            updateUI(id);
+
+            if (currentPulseTweens.length > 0) {
+                currentPulseTweens.forEach(t => t.stop());
+                currentPulseTweens = [];
+            }
+
+            for (const key in siteMarkers) {
+                siteMarkers[key].scale.set(1, 1, 1);
+                siteMarkers[key].material.color.setHex(0xff0055); 
+                siteMarkers[key].material.opacity = 1;  
+            }
+
+            const targetDot = siteMarkers[id];
+            if (targetDot) {
+                
+                const startColor = { r: 1, g: 0, b: 0.33 };  
+                const endColor = { r: 0.7, g: 0.0, b: 1.0 };
+
+                const scaleTween = new TWEEN.Tween(targetDot.scale)
+                    .to({ x: 3.0, y: 3.0, z: 3.0 }, 1000) 
+                    .yoyo(true)
+                    .repeat(Infinity)
+                    .easing(TWEEN.Easing.Quadratic.InOut)
+                    .start();
+                
+                const colorTween = new TWEEN.Tween(targetDot.material.color)
+                    .to({ r: endColor.r, g: endColor.g, b: endColor.b }, 1000) 
+                    .yoyo(true)
+                    .repeat(Infinity)
+                    .easing(TWEEN.Easing.Quadratic.InOut)
+                    .start();
+                currentPulseTweens.push(scaleTween, colorTween);
+            }
+        };
+
+        window.resetView = function() {
+            isAutoRotating = true;
+
+            if (currentPulseTweens.length > 0) {
+                currentPulseTweens.forEach(t => t.stop());
+                currentPulseTweens = [];
+            }
+            for (const key in siteMarkers) {
+                siteMarkers[key].scale.set(1, 1, 1);
+                siteMarkers[key].material.color.setHex(0xff0055);
+            }
+            document.querySelectorAll('.info-card').forEach(el => el.classList.remove('visible'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            new TWEEN.Tween(earthGroup.rotation)
+                .to({ x: 0, z: 23.5 * Math.PI / 180 }, 1000)
+                .start();
+        };
+
+        function updateUI(activeId) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if(item.dataset.id === activeId) item.classList.add('active');
+            });
+            document.querySelectorAll('.info-card').forEach(card => {
+                card.classList.remove('visible');
+            });
+            const targetCard = document.getElementById(`card-${activeId}`);
+            if(targetCard) targetCard.classList.add('visible');
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            TWEEN.update(time);
+
+            if (isAutoRotating && earthGroup) {
+                earthGroup.rotation.y += CONFIG.rotateSpeed;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+
+    <script>
+        window.toggleDetails = function(detailId, btnElement) {
+            const detailCard = document.getElementById(detailId);
+            
+            if (!detailCard) return;
+
+            const isActive = detailCard.classList.toggle('active');
+
+            if (isActive) {
+                btnElement.innerText = "CLOSE REPORT";
+                btnElement.style.background = "rgba(0, 242, 255, 0.2)";  
+                btnElement.style.color = "#fff";
+            } else {
+                btnElement.innerText = "VIEW DETAILED REPORT";
+                btnElement.style.background = "";  
+                btnElement.style.color = "";
+            }
+        };
+    </script>
+
+    <script>
+        const navButtons = document.querySelectorAll('.nav-item');
+
+        navButtons.forEach(btn => {
+            btn.addEventListener('mousemove', (e) => {
+                const rect = btn.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                btn.style.setProperty('--x', `${x}px`);
+                btn.style.setProperty('--y', `${y}px`);
+            });
+        });
+    </script>
+
+    <script>
+        window.openFullscreen = function(contentId) {
+            const overlay = document.getElementById('fullscreen-overlay');
+            const contentArea = document.getElementById('fs-content-area');
+            
+            const originalContent = document.getElementById(contentId);
+
+            if (!originalContent || !overlay) {
+                console.error("找不到地图内容:", contentId);
+                return;
+            }
+
+            contentArea.innerHTML = '';
+            const clonedContent = originalContent.cloneNode(true);
+            clonedContent.removeAttribute('id');
+            contentArea.appendChild(clonedContent);
+            const imgInClone = clonedContent.querySelector('img'); 
+            if (imgInClone) {
+                enableZoomPan(imgInClone);
+            }
+    
+            overlay.style.display = 'flex';
+        };
+
+        window.closeFullscreen = function() {
+            const overlay = document.getElementById('fullscreen-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+                document.getElementById('fs-content-area').innerHTML = '';
+            }
+        };
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                window.closeFullscreen();
+            }
+        });
+    </script>
+        
+    <script>
+        window.showCD10Image = function() {
+            const overlay = document.getElementById('fullscreen-overlay');
+            const contentArea = document.getElementById('fs-content-area');
+
+            if (!overlay || !contentArea) return;
+
+            contentArea.innerHTML = '';
+
+            const img = document.createElement('img');
+            img.src = 'IMG/CD10 layout.png'; 
+            
+            img.style.maxWidth = '90vw';
+            img.style.maxHeight = '90vh';
+            img.style.objectFit = 'contain';
+            img.style.display = 'block';
+            img.style.boxShadow = '0 0 30px rgba(0, 242, 255, 0.3)';  
+
+            contentArea.appendChild(img);
+            overlay.style.display = 'flex';    
+
+            enableZoomPan(img);
+        };
+    </script>
+
+    <script>
+        window.showDetailImage = function(imageSrc) {
+            const overlay = document.getElementById('fullscreen-overlay');
+            const contentArea = document.getElementById('fs-content-area');
+
+            if (!overlay || !contentArea) return;
+
+            contentArea.innerHTML = '';
+            
+            const img = document.createElement('img');
+            img.src = imageSrc;
+            img.style.display = 'block';
+            
+            contentArea.appendChild(img);
+            enableZoomPan(img); 
+            
+            overlay.style.display = 'flex';
+        };
+    </script>
+
+    <script>
+        let zoomState = {
+            scale: 1,
+            panning: false,
+            pointX: 0,
+            pointY: 0,
+            startX: 0,
+            startY: 0
+        };
+
+        function enableZoomPan(imgElement) {
+            zoomState = { scale: 1, panning: false, pointX: 0, pointY: 0, startX: 0, startY: 0 };
+            imgElement.style.transform = `translate(0px, 0px) scale(1)`;
+
+            imgElement.addEventListener('wheel', function(e) {
+                e.preventDefault(); 
+                
+                const zoomIntensity = 0.1;
+                let newScale = zoomState.scale + (e.deltaY * -zoomIntensity * 0.01); 
+                newScale = Math.min(Math.max(1, newScale), 5);
+                zoomState.scale = newScale;
+                updateTransform(imgElement);
+            });
+
+            imgElement.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                zoomState.panning = true;
+                zoomState.startX = e.clientX - zoomState.pointX;
+                zoomState.startY = e.clientY - zoomState.pointY;
+                imgElement.style.cursor = 'grabbing';
+            });
+
+            window.addEventListener('mousemove', function(e) {
+                if (!zoomState.panning) return;
+                e.preventDefault();
+                
+                zoomState.pointX = e.clientX - zoomState.startX;
+                zoomState.pointY = e.clientY - zoomState.startY;
+                
+                updateTransform(imgElement);
+            });
+
+            window.addEventListener('mouseup', function() {
+                zoomState.panning = false;
+                if(imgElement) imgElement.style.cursor = 'grab';
+            });
+        }
+
+        function updateTransform(el) {
+            el.style.transform = `translate(${zoomState.pointX}px, ${zoomState.pointY}px) scale(${zoomState.scale})`;
+        }
+    </script>
+
+    <div id="fullscreen-overlay">
+        <div id="fs-wrapper">
+            <button class="close-fs-btn" onclick="closeFullscreen()">CLOSE X</button>
+        <div id="fs-content-area"></div>
+    </div>
+
+</div>
+</body>
+</html>

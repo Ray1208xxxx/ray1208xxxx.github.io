@@ -1,0 +1,1458 @@
+// scripts/inject_cv.js
+
+hexo.extend.injector.register('head_end', `
+  <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/"
+        }
+      }
+    </script>
+  <style>
+    /* 3D Earth Container */
+    #scene-container {
+        position: relative;
+        width: 100%; 
+        height: 100vh; /* Full viewport height at bottom */
+        z-index: 1; 
+        opacity: 0;
+        transition: opacity 1.5s ease;
+        margin-top: 50px;
+        pointer-events: none; /* Allow scrolling over it */
+    }
+    body.starry-night {
+        background-color: #050505 !important;
+        transition: background-color 2s ease;
+    }
+    /* Ensure parent containers don't hide the dark background if they are white */
+    body.starry-night .main-content-container,
+    body.starry-night .page-container,
+    body.starry-night #app {
+        background: transparent !important;
+        transition: background 0.5s ease;
+    }
+    /* 全屏遮罩层 */
+    #loader-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-color: #252525; 
+        z-index: 99999999;  
+        transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* From Uiverse.io by gsperandio */ 
+    .cubes {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform-style: preserve-3d;
+    }
+    .loop {
+      transform: rotateX(-35deg) rotateY(-45deg) translateZ(1.5625em);
+    }
+    @keyframes s {
+      to {
+        transform: scale3d(0.2, 0.2, 0.2);
+      }
+    }
+    .item {
+      margin: -1.5625em;
+      width: 3.125em;
+      height: 3.125em;
+      transform-origin: 50% 50% -1.5625em;
+      box-shadow: 0 0 0.125em currentColor;
+      background: currentColor;
+      animation: s 0.6s cubic-bezier(0.45, 0.03, 0.51, 0.95) infinite alternate;
+    }
+    .item:before,
+    .item:after {
+      position: absolute;
+      width: inherit;
+      height: inherit;
+      transform-origin: 0 100%;
+      box-shadow: inherit;
+      background: currentColor;
+      content: "";
+    }
+    .item:before {
+      bottom: 100%;
+      transform: rotateX(90deg);
+    }
+    .item:after {
+      left: 100%;
+      transform: rotateY(90deg);
+    }
+    .item:nth-child(1) {
+      margin-top: 6.25em;
+      color: #fe1e52;
+      animation-delay: -1.2s;
+    }
+    .item:nth-child(1):before {
+      color: #ff6488;
+    }
+    .item:nth-child(1):after {
+      color: #ff416d;
+    }
+    .item:nth-child(2) {
+      margin-top: 3.125em;
+      color: #fe4252;
+      animation-delay: -1s;
+    }
+    .item:nth-child(2):before {
+      color: #ff8892;
+    }
+    .item:nth-child(2):after {
+      color: #ff6572;
+    }
+    .item:nth-child(3) {
+      margin-top: 0em;
+      color: #fe6553;
+      animation-delay: -0.8s;
+    }
+    .item:nth-child(3):before {
+      color: #ffa499;
+    }
+    .item:nth-child(3):after {
+      color: #ff8476;
+    }
+    .item:nth-child(4) {
+      margin-top: -3.125em;
+      color: #fe8953;
+      animation-delay: -0.6s;
+    }
+    .item:nth-child(4):before {
+      color: #ffb999;
+    }
+    .item:nth-child(4):after {
+      color: #ffa176;
+    }
+    .item:nth-child(5) {
+      margin-top: -6.25em;
+      color: #feac54;
+      animation-delay: -0.4s;
+    }
+    .item:nth-child(5):before {
+      color: #ffce9a;
+    }
+    .item:nth-child(5):after {
+      color: #ffbd77;
+    }
+    .item:nth-child(6) {
+      margin-top: -9.375em;
+      color: #fed054;
+      animation-delay: -0.2s;
+    }
+    .item:nth-child(6):before {
+      color: #ffe49a;
+    }
+    .item:nth-child(6):after {
+      color: #ffda77;
+    }
+
+
+    /* --- 新增 Loading 文字样式 --- */
+    .loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 5px;      
+      position: absolute;
+      top: 70%; 
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+    .loading-text {
+      color: white;
+      font-size: 17pt;
+      font-weight: 800;
+      margin-left: 10px;
+      font-family: sans-serif;
+      letter-spacing: 1px;
+    }
+    .dot {
+      margin-left: 3px;
+      animation: blink 1.5s infinite;
+      display: inline-block;
+    }
+    .dot:nth-child(2) { animation-delay: 0.3s; }
+    .dot:nth-child(3) { animation-delay: 0.6s; }
+    @keyframes blink {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+
+
+    .home-article-list, .sidebar-content .statistics { display: none !important; }
+    .pagination,
+    .page-number,
+    .paginator { 
+        display: none !important; 
+    }
+    .author .label {
+        display: none !important;
+    }
+
+
+    /* === 头像特殊处理 === */
+    .sidebar-content .avatar {
+        width: 118px !important;
+        height: 118px !important;
+        min-width: 118px !important;  
+        min-height: 118px !important;  
+        margin: 20px auto 10px auto !important;  
+        border-radius: 50% !important;
+        background: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: flex !important;  
+        justify-content: center;
+        align-items: center;
+        flex: 0 0 auto !important;  
+    }
+    .sidebar-content .avatar img {
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 50% !important;
+        border: 4px solid #fff;  
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        object-fit: cover !important;  
+        opacity: 1 !important;
+        visibility: visible !important;
+        max-width: none !important;
+    }
+
+
+    .sidebar-wrapper{
+      position: relative;
+      border-radius: 20px;
+      padding: 3px;
+      overflow: visible;
+      width: 300px !important; 
+      max-width: 100% !important;
+    }    
+    @media (min-width: 1024px) {
+        .home-sidebar-container {
+            width: 330px !important;
+            min-width: 330px !important;            
+            flex-basis: 320px !important;
+            flex-grow: 0 !important;
+            flex-shrink: 0 !important;
+            max-width: none !important;
+        }
+        .home-sidebar-container .sticky-container {
+            width: 100% !important;
+        }
+        .sticky-container {
+            width: 100% !important;
+        }
+        .sidebar-content {
+             width: 100% !important;
+             padding: 15px 6px !important;
+        }
+        .sidebar-wrapper {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+    }
+    @media (min-width: 1600px) {
+        .home-sidebar-container {
+            width: 340px !important;
+            min-width: 340px !important;
+            flex-basis: 340px !important;
+        }
+    }
+    .sidebar-wrapper::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius: 20px;
+      background: linear-gradient(163deg, #FFC107 0%, #FF5722 60%, #D50000 100%);
+      opacity: 0;                  
+      transition: opacity .25s ease;
+      z-index: 0;
+    }
+    .sidebar-wrapper:hover::before{
+      opacity: 1;
+      box-shadow: 0 0 30px 1px rgba(0,255,117,.30);
+    }
+    .sidebar-content {
+        width: 100% !important;
+        height: 100% !important;
+        position: relative !important; 
+        z-index: 1 !important;        
+        background: rgba(255,255,255,0.65) !important;
+        backdrop-filter: blur(12px) !important; 
+        -webkit-backdrop-filter: blur(12px) !important;
+        border-radius: 18px !important; 
+        transition: transform 0.2s ease, border-radius 0.2s ease !important;
+        overflow: visible !important;
+    }
+    .sidebar-content:hover {
+      transform: scale(0.98) !important;
+      border-radius: 18px !important;
+    }
+    .sidebar-content::after { display: none !important; }
+    
+
+    /* =========================================================================
+       6. 通用玻璃卡片样式 (全局可用 - Uiverse Card) 
+       ========================================================================= */
+    .cv-glass-wrap {
+      position: relative; width: 100%; margin: 45px 0 45px;
+      display: flex; justify-content: center; align-items: center; z-index: 0;
+      min-height: 360px; padding: 28px 20px; background: transparent;
+    }
+    /* 大圆背景 */
+    .cv-glass-wrap::after {
+      content: " "; position: absolute; height: 120px; width: 120px; left: 50%; top: 18px;
+      transform: translateX(-140%); background-image: linear-gradient(orange, magenta);
+      border-radius: 50%; z-index: -1; border: 2px solid #ffffffa6;
+      box-shadow: inset 10px 0px 20px #fff; animation: cvGlassAni 18s ease-in-out infinite;
+    }
+    /* 小圆背景 */
+    .cv-glass-wrap::before {
+      content: " "; position: absolute; height: 56px; width: 56px; left: 50%; bottom: 10px;
+      transform: translateX(-110%); background-image: linear-gradient(90deg, orange, magenta);
+      border-radius: 50%; z-index: -1; border: 2px solid #ffffffa6;
+      box-shadow: inset 10px 0px 20px #fff;
+    }
+    /* 卡片主体 */
+    .cv-glass-card {
+      width: 100%; padding: 10px 10px; height: auto;
+      border: 1px solid #ffffff56; border-radius: 18px; backdrop-filter: blur(10.5px);
+      position: relative; box-shadow: inset 2px 1px 6px #ffffff45; overflow: hidden; z-index: 0;
+    }
+    /* 光泽条 */
+    .cv-glass-card::after {
+      z-index: -1; content: " "; position: absolute; width: 150%; top: 0; left: 0; height: 10px;
+      background: #ffffff; transform: rotateZ(50deg); filter: blur(30px);
+      animation: cvGlassShine 10s ease infinite;
+    }
+    /* 标题样式 */
+    .cv-glass-title {
+      font-family: inherit !important;
+      color: transparent; -webkit-background-clip: text;
+      background-image: linear-gradient(90deg, rgb(0, 0, 0), rgb(116, 111, 111));
+      font-weight: 900; 
+      font-size: 33px; 
+      line-height: 1.15; 
+      margin: 8px 0 16px; 
+      letter-spacing: -0.3px;
+    }
+    /* 描述样式 */
+    .cv-glass-desc {
+      font-family: inherit !important; margin: 0; padding: 0; color: #3a3939; font-size: 17px; line-height: 1.75; width: 100%; max-width: none;
+    }
+    /* 动画定义 (防止冲突，已改名) */
+    @keyframes cvGlassAni {
+      0% { transform: translateX(0%) scale(1); }
+      50% { transform: translateX(-100%) scale(0.85); }
+      100% { transform: translateX(0%) scale(1); }
+    }
+    @keyframes cvGlassShine {
+      0% { top: 100%; left: -100%; }
+      50%, 100% { top: 0%; left: 70%; }
+    }
+    @media (max-width: 520px) {
+      .cv-glass-wrap { min-height: 320px; margin: 36px 0 44px; padding: 18px 12px; }
+      .cv-glass-wrap::after { height: 100px; width: 100px; top: 10px; transform: translateX(-130%); }
+      .cv-glass-wrap::before { height: 48px; width: 48px; bottom: 8px; transform: translateX(-105%); }
+      .cv-glass-card { padding: 22px 20px 20px; border-radius: 16px; }
+      .cv-glass-title { font-size: 28px; margin: 6px 0 12px; }
+      .cv-glass-desc { font-size: 15px; line-height: 1.7; }
+    }
+
+    /* === 首页 Banner 样式 === */
+    .home-banner { 
+        margin-top: 0 !important; 
+        padding-top: 0 !important;
+        background-size: contain !important; 
+        background-repeat: no-repeat !important; 
+        background-position: center center !important; 
+        background-color: #252525 !important; 
+        min-height: 100vh !important; 
+    }
+    .home-banner .banner-title, .home-banner h1 { font-size: 5rem !important; font-weight: 800 !important; }
+    .home-banner .subtitle, .home-banner .banner-subtitle, .home-banner .typed-cursor { font-size: 2rem !important; line-height: 1.5 !important; font-weight: 600 !important; }
+    @media (max-width: 768px) {
+      .home-banner .banner-title, .home-banner h1 { font-size: 3.5rem !important; }
+      .home-banner .subtitle, .home-banner .banner-subtitle { font-size: 1.5rem !important; }
+    }
+    
+    /* === Bio 样式 === */
+    .cv-sidebar-bio { padding: 0 10px 20px; text-align: center; font-size: 14px; line-height: 1.6; color: #555; animation: fadeIn 0.5s ease; }
+    .cv-skill-divider {
+        height: 1px;
+        width: 80%;            
+        background-color: #7e7d7d;  
+        margin: 12px auto;      
+        border: none;
+    }
+    .cv-sidebar-tags { 
+        display: flex !important; 
+        flex-wrap: wrap !important; 
+        justify-content: center !important; 
+        gap: 6px !important; 
+    }
+    .cv-sidebar-tag { 
+        display: inline-flex !important;       
+        align-items: center !important;
+        gap: 6px !important; 
+        border-radius: 50px !important;      
+        border: 1px solid #e5e5e5 !important;
+        background-color: #f5f5f5 !important;
+        color: #404040 !important;
+        padding: 5px 10px !important;          
+        font-size: 12px !important;  
+        line-height: 1 !important;
+        cursor: default !important;
+        text-decoration: none !important;
+        transition: all 0.2s ease !important;
+        margin: 0 !important;
+    }
+    .cv-sidebar-tag:hover {
+        border-color: #3b82f6 !important; 
+        color: #2563eb !important;       
+        background-color: white !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.08) !important;
+    }
+    .cv-sidebar-tag i { color: inherit !important; margin: 0 !important; }
+    .cv-contact-btn { display: inline-block; margin-top: 20px; padding: 8px 20px; background: #3b82f6; color: white !important; border-radius: 20px; font-weight: bold; text-decoration: none; font-size: 13px; transition: background 0.3s; }
+    .cv-contact-btn:hover { background: #2563eb; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+
+    /* === 简历卡片样式 === */
+    .cv-home-sections { max-width: 900px; margin: 0 auto; padding: 0 10px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }    
+    .cv-section-title { 
+        font-size: 35px; 
+        font-weight: 800; 
+        margin: 40px 0 25px; 
+        display: flex; 
+        align-items: center; 
+        gap: 12px; 
+        padding-bottom: 15px;
+        
+        /* 修改为白色，并增加阴影 */
+        color: #ffffff !important; 
+        text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        /* 下划线改为半透明白 */
+        border-bottom: 2px solid rgba(255,255,255,0.3); 
+    }
+    .cv-edu-section .cv-section-title {
+        margin-top: 0 !important;
+    }
+    .cv-grid { display: flex; flex-direction: column; gap: 20px; }
+    .cv-card { display: flex; align-items: flex-start; gap: 20px; text-decoration: none !important; color: inherit; background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(0,0,0,0.06); border-radius: 16px; padding: 24px; transition: all 0.3s ease; position: relative; z-index: 10; }
+    .cv-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.08); background: rgba(255,255,255,0.85); }
+    .cv-logo-box { width: 60px; height: 60px; flex-shrink: 0; border-radius: 12px; background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+    .cv-logo-box img { width: 100% !important; height: 100% !important; object-fit: cover !important; padding: 0 !important; }
+    .cv-logo-box i { font-size: 30px; opacity: 0.7; }
+    .cv-content-box { flex: 1; min-width: 0; }
+    .cv-card-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px; }
+    .cv-card-subheader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .cv-role { font-size: 19px; font-weight: 700; color: #111; line-height: 1.2; }
+    .cv-org { font-size: 17.5px; font-weight: 500; color: #444; }
+    .cv-time { font-size: 14px; opacity: 0.5; font-family: monospace; white-space: nowrap; margin-left: 10px; }
+    .cv-gpa { font-size: 14px; font-weight: 600; opacity: 0.8; font-family: monospace; color: #444; background: rgba(0,0,0,0.04); padding: 2px 6px; border-radius: 4px; }
+    .cv-desc { font-size: 14px; opacity: 0.75; line-height: 1.6; margin-top: 5px; }
+    /* .cv-edu-section .cv-card { border-left: 5px solid #f97316; } .cv-edu-section .cv-org { color: #f97316; } .cv-edu-section .cv-logo-box i { color: #f97316; } */
+    /* .cv-exp-section .cv-card { border-left: 5px solid #3b82f6; } .cv-exp-section .cv-org { color: #3b82f6; } .cv-exp-section .cv-logo-box i { color: #3b82f6; } */
+    /* .cv-proj-section .cv-card { border-left: 5px solid #8b5cf6; } .cv-proj-section .cv-org { color: #8b5cf6; } .cv-proj-section .cv-logo-box i { color: #8b5cf6; } */
+    
+
+    /* 标题部分：去掉原本的下划线，缩小下方间距 */
+    .job-header h2 {
+        border-bottom: none !important;
+        margin-bottom: 8px !important;
+        margin-top: 10px !important;
+        padding-bottom: 0 !important;
+        color: #111 !important;
+    }
+    .job-header .job-meta {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #666;
+        font-size: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .job-header .job-meta i {
+        color: #888;
+        margin-right: 5px;
+    }
+    .job-header .job-meta .separator {
+        color: #ddd;
+    }
+    @media (max-width: 600px) { .cv-card { padding: 18px; gap: 15px; } .cv-logo-box { width: 48px; height: 48px; } .cv-card-header, .cv-card-subheader { flex-direction: column; align-items: flex-start; gap: 2px; } .cv-time, .cv-gpa { margin-left: 0; font-size: 12px; margin-top: 2px; } }
+    
+    /* === 首页底部 Preloader 动画 === */
+    .center-preloader-box {
+        width: 550px;
+        height: 550px;
+        flex-shrink: 0;  
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .preloader {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 0 2px #fff);
+    }
+    .crack {
+      position: absolute;
+      width: 10%;
+      aspect-ratio: 1;
+      background-color: #fef3fc;
+      clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+      animation: rotate 6s infinite;
+    }
+    .crack2 { width: 12%; animation-delay: 1s; }
+    .crack3 { width: 14%; animation-delay: 1.5s; }
+    .crack4 { width: 16%; animation-delay: 2s; }
+    .crack5 { width: 18%; animation-delay: 2.5s; }
+    @keyframes rotate { to { rotate: 360deg; } }
+
+
+    /* From Uiverse.io by ilkhoeri - Modified for Sidebar */ 
+    .contact-card {
+      padding: 0;               
+      border: none;             
+      background: transparent;  
+      backdrop-filter: none;    
+      box-shadow: none;        
+      
+      width: 100%;             
+      margin-top: 20px;        
+      overflow: visible;
+    }
+    .contact-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      position: relative;
+      z-index: 10;
+      border: 0.5px solid #525252;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .contact-terminal {
+      display: flex;
+      flex-direction: column;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .contact-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      overflow: hidden;
+      min-height: 32px; 
+      padding-inline: 12px;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+      background-color: #202425;
+    }
+    .contact-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 2.5rem;
+      user-select: none;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #8e8e8e;
+      font-size: 12px;  
+      margin: 0;
+    }
+    .contact-title > svg {
+      height: 16px;
+      width: 16px;
+      margin-top: 2px;
+      color: #006adc;
+    }
+    .copy_toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem;
+      border: 0.65px solid #c1c2c5;
+      margin-left: auto;
+      border-radius: 6px;
+      background-color: #202425;
+      color: #8e8e8e;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .copy_toggle:hover {
+        background-color: #444;
+        color: #fff;
+    }
+    .copy_toggle > svg {
+      width: 16px;
+      height: 16px;
+    }
+    .copy_toggle:active > svg > path,
+    .copy_toggle:focus-within > svg > path {
+      animation: clipboard-check 500ms linear forwards;
+    }
+    .contact-body {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border-bottom-right-radius: 8px;
+      border-bottom-left-radius: 8px;
+      overflow-x: auto;  
+      padding: 10px;
+      line-height: 19px;
+      color: white;
+      background-color: black;
+      white-space: nowrap;
+    }
+    .contact-pre {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      text-wrap: nowrap;
+      white-space: pre;
+      background-color: transparent;
+      overflow: hidden;
+      box-sizing: border-box;
+      font-size: 13px; 
+      margin: 0;
+    }
+    .contact-pre code:nth-child(1) {
+      color: #575757;
+    }
+    .contact-pre code:nth-child(2) {
+      color: #e34ba9;
+    }
+    .contact-cmd {
+      height: 19px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      flex-direction: row;
+      color: #e0e0e0 !important;
+    }
+    .contact-cmd::before {
+      content: attr(data-cmd);
+      position: relative;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      background-color: transparent;
+      animation: inputs 8s steps(22) infinite;
+    }
+    .contact-cmd::after {
+      content: "";
+      position: relative;
+      display: block;
+      height: 100%;
+      overflow: hidden;
+      background-color: transparent;
+      border-right: 0.15em solid #e34ba9;
+      animation: cursor 0.5s step-end infinite alternate, blinking 0.5s infinite;
+    }
+    @keyframes blinking {
+      20%, 80% { transform: scaleY(1); }
+      50% { transform: scaleY(0); }
+    }
+    @keyframes cursor {
+      50% { border-right-color: transparent; }
+    }
+    @keyframes inputs {
+      0%, 100% { width: 0; }
+      10%, 90% { width: 58px; }
+      30%, 70% { width: 100%; max-width: max-content; }
+    }
+    @keyframes clipboard-check {
+      100% {
+        color: #fff;
+        d: path("M 9 5 H 7 a 2 2 0 0 0 -2 2 v 12 a 2 2 0 0 0 2 2 h 10 a 2 2 0 0 0 2 -2 V 7 a 2 2 0 0 0 -2 -2 h -2 M 9 5 a 2 2 0 0 0 2 2 h 2 a 2 2 0 0 0 2 -2 M 9 5 a 2 2 0 0 1 2 -2 h 2 a 2 2 0 0 1 2 2 m -6 9 l 2 2 l 4 -4");
+      }
+    }
+
+    .wheel-and-hamster {
+      --dur: 1s;
+      position: relative;
+      width: 12em;
+      height: 12em;
+      font-size: 15px;    
+      
+      margin-left: auto;   
+      margin-right: 12px;  
+      flex-shrink: 0;
+    }
+    .wheel,
+    .hamster,
+    .hamster div,
+    .spoke {
+      position: absolute;
+    }
+    .wheel,
+    .spoke {
+      border-radius: 50%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .wheel {
+      background: radial-gradient(100% 100% at center,hsla(0,0%,60%,0) 47.8%,hsl(0,0%,60%) 48%);
+      z-index: 2;
+    }
+    .hamster {
+      animation: hamster var(--dur) ease-in-out infinite;
+      top: 50%;
+      left: calc(50% - 3.5em);
+      width: 7em;
+      height: 3.75em;
+      transform: rotate(4deg) translate(-0.8em,1.85em);
+      transform-origin: 50% 0;
+      z-index: 1;
+    }
+    .hamster__head {
+      animation: hamsterHead var(--dur) ease-in-out infinite;
+      background: hsl(30,90%,55%);
+      border-radius: 70% 30% 0 100% / 40% 25% 25% 60%;
+      box-shadow: 0 -0.25em 0 hsl(30,90%,80%) inset,
+            0.75em -1.55em 0 hsl(30,90%,90%) inset;
+      top: 0;
+      left: -2em;
+      width: 2.75em;
+      height: 2.5em;
+      transform-origin: 100% 50%;
+    }
+    .hamster__ear {
+      animation: hamsterEar var(--dur) ease-in-out infinite;
+      background: hsl(0,90%,85%);
+      border-radius: 50%;
+      box-shadow: -0.25em 0 hsl(30,90%,55%) inset;
+      top: -0.25em;
+      right: -0.25em;
+      width: 0.75em;
+      height: 0.75em;
+      transform-origin: 50% 75%;
+    }
+    .hamster__eye {
+      animation: hamsterEye var(--dur) linear infinite;
+      background-color: hsl(0,0%,0%);
+      border-radius: 50%;
+      top: 0.375em;
+      left: 1.25em;
+      width: 0.5em;
+      height: 0.5em;
+    }
+    .hamster__nose {
+      background: hsl(0,90%,75%);
+      border-radius: 35% 65% 85% 15% / 70% 50% 50% 30%;
+      top: 0.75em;
+      left: 0;
+      width: 0.2em;
+      height: 0.25em;
+    }
+    .hamster__body {
+      animation: hamsterBody var(--dur) ease-in-out infinite;
+      background: hsl(30,90%,90%);
+      border-radius: 50% 30% 50% 30% / 15% 60% 40% 40%;
+      box-shadow: 0.1em 0.75em 0 hsl(30,90%,55%) inset,
+            0.15em -0.5em 0 hsl(30,90%,80%) inset;
+      top: 0.25em;
+      left: 2em;
+      width: 4.5em;
+      height: 3em;
+      transform-origin: 17% 50%;
+      transform-style: preserve-3d;
+    }
+    .hamster__limb--fr,
+    .hamster__limb--fl {
+      clip-path: polygon(0 0,100% 0,70% 80%,60% 100%,0% 100%,40% 80%);
+      top: 2em;
+      left: 0.5em;
+      width: 1em;
+      height: 1.5em;
+      transform-origin: 50% 0;
+    }
+    .hamster__limb--fr {
+      animation: hamsterFRLimb var(--dur) linear infinite;
+      background: linear-gradient(hsl(30,90%,80%) 80%,hsl(0,90%,75%) 80%);
+      transform: rotate(15deg) translateZ(-1px);
+    }
+    .hamster__limb--fl {
+      animation: hamsterFLLimb var(--dur) linear infinite;
+      background: linear-gradient(hsl(30,90%,90%) 80%,hsl(0,90%,85%) 80%);
+      transform: rotate(15deg);
+    }
+    .hamster__limb--br,
+    .hamster__limb--bl {
+      border-radius: 0.75em 0.75em 0 0;
+      clip-path: polygon(0 0,100% 0,100% 30%,70% 90%,70% 100%,30% 100%,40% 90%,0% 30%);
+      top: 1em;
+      left: 2.8em;
+      width: 1.5em;
+      height: 2.5em;
+      transform-origin: 50% 30%;
+    }
+    .hamster__limb--br {
+      animation: hamsterBRLimb var(--dur) linear infinite;
+      background: linear-gradient(hsl(30,90%,80%) 90%,hsl(0,90%,75%) 90%);
+      transform: rotate(-25deg) translateZ(-1px);
+    }
+    .hamster__limb--bl {
+      animation: hamsterBLLimb var(--dur) linear infinite;
+      background: linear-gradient(hsl(30,90%,90%) 90%,hsl(0,90%,85%) 90%);
+      transform: rotate(-25deg);
+    }
+    .hamster__tail {
+      animation: hamsterTail var(--dur) linear infinite;
+      background: hsl(0,90%,85%);
+      border-radius: 0.25em 50% 50% 0.25em;
+      box-shadow: 0 -0.2em 0 hsl(0,90%,75%) inset;
+      top: 1.5em;
+      right: -0.5em;
+      width: 1em;
+      height: 0.5em;
+      transform: rotate(30deg) translateZ(-1px);
+      transform-origin: 0.25em 0.25em;
+    }
+    .spoke {
+      animation: spoke var(--dur) linear infinite;
+      background: radial-gradient(100% 100% at center,hsl(0,0%,60%) 4.8%,hsla(0,0%,60%,0) 5%),
+            linear-gradient(hsla(0,0%,55%,0) 46.9%,hsl(0,0%,65%) 47% 52.9%,hsla(0,0%,65%,0) 53%) 50% 50% / 99% 99% no-repeat;
+    }
+    @keyframes hamster { from, to { transform: rotate(4deg) translate(-0.8em,1.85em); } 50% { transform: rotate(0) translate(-0.8em,1.85em); } }
+    @keyframes hamsterHead { from, 25%, 50%, 75%, to { transform: rotate(0); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(8deg); } }
+    @keyframes hamsterEye { from, 90%, to { transform: scaleY(1); } 95% { transform: scaleY(0); } }
+    @keyframes hamsterEar { from, 25%, 50%, 75%, to { transform: rotate(0); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(12deg); } }
+    @keyframes hamsterBody { from, 25%, 50%, 75%, to { transform: rotate(0); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(-2deg); } }
+    @keyframes hamsterFRLimb { from, 25%, 50%, 75%, to { transform: rotate(50deg) translateZ(-1px); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(-30deg) translateZ(-1px); } }
+    @keyframes hamsterFLLimb { from, 25%, 50%, 75%, to { transform: rotate(-30deg); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(50deg); } }
+    @keyframes hamsterBRLimb { from, 25%, 50%, 75%, to { transform: rotate(-60deg) translateZ(-1px); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(20deg) translateZ(-1px); } }
+    @keyframes hamsterBLLimb { from, 25%, 50%, 75%, to { transform: rotate(20deg); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(-60deg); } }
+    @keyframes hamsterTail { from, 25%, 50%, 75%, to { transform: rotate(30deg) translateZ(-1px); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(10deg) translateZ(-1px); } }
+    @keyframes spoke { from { transform: rotate(0); } to { transform: rotate(-1turn); } }
+
+    /* === 书签页 (Bookmarks) 样式修正 (修复版) === */
+
+    /* 1. 增宽侧边栏 & 允许文字换行 */
+    @media (min-width: 768px) {
+        /* Redefine 原本是 w-48 (192px)，我们改成 300px 甚至更宽 */
+        .md\:w-48 {
+            width: 250px !important; 
+            flex-basis: 300px !important;
+            min-width: 300px !important; 
+        }        
+        .bookmark-nav-item {
+            white-space: normal !important;   
+            height: auto !important;        
+            overflow: visible !important;    
+            text-overflow: clip !important;  
+            line-height: 1.5 !important;    
+            padding-top: 10px !important;     
+            padding-bottom: 10px !important;
+        }
+    }
+    a[data-category="separator"] {
+        height: 1px !important;
+        padding: 0 !important;
+        margin: 15px 10px !important;  
+        background-color: #e5e7eb !important;          
+        font-size: 0 !important;
+        color: transparent !important;        
+        pointer-events: none !important;
+        cursor: default !important;
+        border: none !important;
+    }
+    @media (prefers-color-scheme: dark) {
+        a[data-category="separator"] {
+            background-color: #374151 !important; 
+        }
+    }
+    #separator {
+        display: none !important;
+    }
+  </style>
+`);
+
+hexo.extend.injector.register('body_begin', `
+  <div id="loader-overlay">
+      <div class="loop cubes">
+          <div class="item cubes"></div>
+          <div class="item cubes"></div>
+          <div class="item cubes"></div>
+          <div class="item cubes"></div>
+          <div class="item cubes"></div>
+          <div class="item cubes"></div>
+      </div>
+
+      <div class="loader">
+        <div class="loading-text">
+          Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+        </div>
+      </div>
+  </div>
+`);
+
+hexo.extend.injector.register('body_end', `
+  <script>
+    // 定义隐藏 Loader 的函数
+    function hideLoader() {
+        var loader = document.getElementById('loader-overlay');
+        if (loader) {
+            loader.style.opacity = '0';
+            loader.style.visibility = 'hidden';
+            setTimeout(function() {
+                loader.remove();  
+            }, 500);
+        }
+    }
+    setTimeout(hideLoader, 2000);
+
+    // 2. Pjax 兼容
+    document.addEventListener("pjax:send", function() {
+        /*
+        if (!document.getElementById('loader-overlay')) {
+            var loaderHTML = '<div id="loader-overlay" style="opacity:1; visibility:visible;">...同上...</div>';
+            document.body.insertAdjacentHTML('afterbegin', loaderHTML);
+        }
+        */
+    });
+
+    document.addEventListener("pjax:complete", function() {
+        runCVInjection();
+    });
+
+    function manageHomeLayout() {
+       var isHome = (window.location.pathname === '/' || window.location.pathname === '/index.html');
+       var styleId = 'cv-home-layout-fix';
+       var existingStyle = document.getElementById(styleId);
+
+       if (isHome) {
+           if (!existingStyle) {
+               var style = document.createElement('style');
+               style.id = styleId;
+               style.innerHTML = \`
+                  html, body { margin-top: 0 !important; padding-top: 0 !important; }
+                  .main-content-container, .page-container, #app { padding-top: 0 !important; margin-top: 0 !important; }
+               \`;
+               document.head.appendChild(style);
+           }
+       } else {
+           if (existingStyle) {
+               existingStyle.remove();
+           }
+       }
+    }
+
+    // 定义注入逻辑
+    function runCVInjection() {
+      manageHomeLayout();
+
+      if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') return;
+      
+      // === 侧边栏改造  ===
+      var sideCard = document.querySelector('.sidebar-content');
+      
+      if (sideCard) {
+          if (!sideCard.parentElement.classList.contains('sidebar-wrapper')) {
+              var wrapperDiv = document.createElement('div');
+              wrapperDiv.className = 'sidebar-wrapper';
+
+              sideCard.parentNode.insertBefore(wrapperDiv, sideCard);
+              wrapperDiv.appendChild(sideCard);
+          }
+          var avatarContainer = sideCard.querySelector('.avatar');
+          
+          if (avatarContainer) {
+              var img = avatarContainer.querySelector('img');
+              var currentSrc = img ? img.getAttribute('src') : '';
+              
+              if (!img || !currentSrc.includes('avatar.png')) {
+                  console.log("正在重写头像 HTML...");
+                  avatarContainer.innerHTML = '<img src="/images/avatar.png?v=' + new Date().getTime() + '" style="opacity: 1 !important; display: block !important;">';
+              }
+          }
+
+          // 插入 Bio
+          if (!sideCard.querySelector('.cv-sidebar-bio')) {
+              var bioHTML = \`
+                <div class="cv-sidebar-bio">
+                    <p>Hi, 你好, Hola, Ciao, Bonjour</p>
+                    
+                    <div class="cv-skill-divider"></div>
+
+                    <div class="cv-sidebar-tags">
+                        <div class="cv-sidebar-tag"><i class="fa-brands fa-python"></i> Python</div>
+                        <div class="cv-sidebar-tag"><i class="fa-brands fa-java"></i> Java</div>
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-server skill-icon"></i> Spark</div>
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-fire"></i> PyTorch</div>
+                        <div class="cv-sidebar-tag"><i class="fa-brands fa-docker"></i> Docker</div>
+                        <div class="cv-sidebar-tag"><i class="fa-brands fa-git-alt"></i> Git</div>
+                    </div>
+
+                    <div class="cv-skill-divider"></div>
+
+                    <div class="cv-sidebar-tags">
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-brain"></i> Machine Learning</div>
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-gears"></i> MLOps</div>
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-network-wired"></i> Deep Learning</div>
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-comments"></i> NLP</div>
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-wand-magic-sparkles"></i> LLMs</div>
+                    </div>
+
+                    <div class="cv-skill-divider"></div>
+
+                    <div class="cv-sidebar-tags">
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-database"></i> MySQL</div>
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-file-lines"></i></i> NoSQL</div>
+                        <div class="cv-sidebar-tag"><i class="fa-brands fa-aws"></i> AWS</div>
+                        <div class="cv-sidebar-tag"><i class="fa-brands fa-microsoft"></i> Azure</div>
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-cloud"></i> Snowflake</div>
+                    </div>
+
+                    <div class="cv-skill-divider"></div>
+
+                    <div class="cv-sidebar-tags">
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-chart-simple"></i> Tableau</div>
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-chart-pie"></i> PowerBI</div>
+                        <div class="cv-sidebar-tag"><i class="fa-solid fa-chart-area"></i> Qlik</div>
+                    </div>
+
+                    <div class="contact-card">
+                      <div class="contact-wrap">
+                        <div class="contact-terminal">
+                          <hgroup class="contact-head">
+                            <p class="contact-title">
+                              <svg width="16px" height="16px" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" stroke="currentColor" fill="none">
+                                <path d="M7 15L10 12L7 9M13 15H17M7.8 21H16.2C17.8802 21 18.7202 21 19.362 20.673C19.9265 20.3854 20.3854 19.9265 20.673 19.362C21 18.7202 21 17.8802 21 16.2V7.8C21 6.11984 21 5.27976 20.673 4.63803C20.3854 4.07354 19.9265 3.6146 19.362 3.32698C18.7202 3 17.8802 3 16.2 3H7.8C6.11984 3 5.27976 3 4.63803 3.32698C4.07354 3.6146 3.6146 4.07354 3.32698 4.63803C3 5.27976 3 6.11984 3 7.8V16.2C3 17.8802 3 18.7202 3.32698 19.362C3.6146 19.9265 4.07354 20.3854 4.63803 20.673C5.27976 21 6.11984 21 7.8 21Z"></path>
+                              </svg>
+                              zsh — Contact
+                            </p>
+                            <button class="copy_toggle" tabindex="-1" type="button" onclick="navigator.clipboard.writeText('ddl1208@icloud.com'); alert('Email copied!');">
+                              <svg width="16px" height="16px" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" stroke="currentColor" fill="none">
+                                <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"></path>
+                                <path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z"></path>
+                              </svg>
+                            </button>
+                          </hgroup>
+                          <div class="contact-body">
+                            <pre class="contact-pre">
+                              <code>~ </code>
+                              <code>mail </code>
+                              <code class="contact-cmd" data-cmd="ddl1208@icloud.com"></code>
+                            </pre>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                </div>
+              \`;
+              var wrapper = document.createElement('div');
+              wrapper.innerHTML = bioHTML;
+              sideCard.appendChild(wrapper);
+          }
+      }
+
+      // === 简历内容替换 ===
+      var targetList = document.querySelector('.home-article-list');
+      if (targetList) {
+          console.log("CV Injection: Target list detected, running replacement...");
+          var cvHTML = \`
+            <div class="cv-home-sections">
+              <div class="cv-edu-section">
+                <div class="cv-section-title"><i class="fa-solid fa-graduation-cap"></i> Education</div>
+                <div class="cv-grid">
+                  <a href="/2023/09/28/MISM-Carnegie-Mellon-University/" class="cv-card">
+                    <div class="cv-logo-box">
+                        <img src="/images/CMU.png" alt="CMU">
+                    </div>
+                    <div class="cv-content-box">
+                      <div class="cv-card-header"><span class="cv-role">Carnegie Mellon University</span><span class="cv-time">Sep 2023 - Dec 2024</span></div>
+                      <div class="cv-card-subheader"><span class="cv-org">Master of Information Systems</span><span class="cv-gpa">GPA: 3.8 / 4.0</span></div>
+                      <div class="cv-desc">Focus: Data Science, Machine Learning in Production.</div>
+                    </div>
+                  </a>
+                  <a href="/2019/02/11/BCompSci-Data-Science-University-of-Queensland/" class="cv-card">
+                    <div class="cv-logo-box">
+                        <img src="/images/uq2.png" alt="UQ">
+                    </div>
+                    <div class="cv-content-box">
+                      <div class="cv-card-header"><span class="cv-role">University of Queensland</span><span class="cv-time">Feb 2019 - Dec 2022</span></div>
+                      <div class="cv-card-subheader"><span class="cv-org">Bachelor of Computer Science & Data Science</span><span class="cv-gpa">GPA: 3.88 / 4.0</span></div>
+                      <div class="cv-desc">Focus: Algorithms, Database Managements, Statistics.</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
+              <div class="cv-exp-section">
+                <div class="cv-section-title"><i class="fa-solid fa-briefcase"></i> Work Experience</div>
+                <div class="cv-grid">
+                  <a href="/2025/05/26/AI-Data-Scientist-Intel/" class="cv-card">
+                    <div class="cv-logo-box">
+                        <img src="/images/intel.png" alt="intel">
+                    </div>
+                    <div class="cv-content-box">
+                      <div class="cv-card-header"><span class="cv-role">Intel Corporation</span><span class="cv-time">May 2025 - Present</span></div>
+                      <div class="cv-card-subheader"><span class="cv-org">AI Data Scientist</span></div>
+                      <div class="cv-desc">Driving AI-powered capacity planning and global supply-chain transformation through scalable forecasting systems and executive decision platforms.</div>
+                    </div>
+                  </a>
+                  <a href="/2024/05/20/Strategic-Sourcing-Data-Analyst-MSA-Safety/" class="cv-card">
+                     <div class="cv-logo-box">
+                        <img src="/images/msa.jpg" alt="msa">
+                    </div>
+                     <div class="cv-content-box">
+                       <div class="cv-card-header"><span class="cv-role">MSA Safety</span><span class="cv-time">May 2024 - Dec 2024</span></div>
+                       <div class="cv-card-subheader"><span class="cv-org">Data Analyst Internship</span></div>
+                       <div class="cv-desc">Optimizing global procurement and supplier strategy through data analytics, machine learning, and executive-level business intelligence.</div>
+                     </div>
+                  </a>
+                  <a href="/2023/02/18/Data-Scientist-Intern-LVMH/" class="cv-card">
+                    <div class="cv-logo-box">
+                        <img src="/images/lvmh.jpg" alt="lvmg">
+                    </div>
+                    <div class="cv-content-box">
+                      <div class="cv-card-header"><span class="cv-role">LVMH</span><span class="cv-time">Feb 2023 - Jul 2023</span></div>
+                      <div class="cv-card-subheader"><span class="cv-org">Data Scientist Internship</span></div>
+                      <div class="cv-desc">Enabling data-driven growth for luxury retail by applying advanced analytics to user segmentation, forecasting, and performance marketing optimization.</div>
+                    </div>
+                  </a>
+                  <a href="/2021/12/13/Data-Expert-Intern-Signify/" class="cv-card">
+                    <div class="cv-logo-box">
+                        <img src="/images/signifycompany_logo.jpg" alt="signify">
+                    </div>
+                    <div class="cv-content-box">
+                      <div class="cv-card-header"><span class="cv-role">Signify</span><span class="cv-time">Dec 2021 - Sep 2022</span></div>
+                      <div class="cv-card-subheader"><span class="cv-org">Data Expert Internship</span></div>
+                      <div class="cv-desc">Advancing supply-chain efficiency and digital transformation through automation, analytics, and operational data optimization.</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
+              <div class="cv-proj-section">
+                <div class="cv-section-title"><i class="fa-solid fa-code"></i> Selected Projects</div>
+                <div class="cv-grid">
+                  
+                  <a href="/2024/08/19/Capstone-Emotion-Classification-with-LLMs/" class="cv-card">
+                    <div class="cv-logo-box">
+                        <img src="/images/tcs.png" alt="tcs">
+                    </div>
+                    <div class="cv-content-box">
+                      <div class="cv-card-header"><span class="cv-role">CMU & Tata Consultancy Services</span><span class="cv-time">Aug 2024 - Dec 2024</span></div>
+                      <div class="cv-card-subheader"><span class="cv-org">Data Scientist - Emotion Classification with LLMs and NLP Models Capstone Project</span></div>
+                      <div class="cv-desc">Developed and deployed an end-to-end NLP solution leveraging transformer-based models to enable scalable emotion understanding and intelligent text classification in real-world applications. </div>
+                    </div>
+                  </a>
+
+                  <a href="/2024/01/12/Recognition-Fault-Detection-System/" class="cv-card">
+                    <div class="cv-logo-box">
+                        <img src="/images/GE-Logo.png" alt="ge">
+                    </div>
+                    <div class="cv-content-box">
+                      <div class="cv-card-header"><span class="cv-role">CMU & General Electric</span><span class="cv-time">Jan 2024 - May 2024</span></div>
+                      <div class="cv-card-subheader"><span class="cv-org">Data Scientist - Recognition and Fault Detection System Project</span></div>
+                      <div class="cv-desc">Built a real-time, production-oriented computer vision system integrating deep learning and streaming architectures to enhance industrial fault detection and operational reliability. </div>
+                    </div>
+                  </a>
+
+                  <a href="/2023/09/30/Movie-Recommendations-Platform" class="cv-card">
+                    <div class="cv-logo-box">
+                        <img src="/images/Netflix-Symbol.png" alt="netflix">
+                    </div>
+                    <div class="cv-content-box">
+                      <div class="cv-card-header"><span class="cv-role">CMU & Netflix</span><span class="cv-time">Sep 2023 - Dec 2023</span></div>
+                      <div class="cv-card-subheader"><span class="cv-org">Data Scientist - Movie Recommendations Platform Project</span></div>
+                      <div class="cv-desc">Designed a large-scale recommendation platform with real-time APIs, distributed data pipelines, and MLOps automation to support high-throughput personalization at scale.</div>
+                    </div>
+                  </a>
+                  <!-- 3D Earth Container Hook -->
+                  <div id="scene-container"></div>
+
+                </div>
+              </div>
+              <div style="height: 60px;"></div>
+            </div>
+            </div>
+           \`;
+          targetList.outerHTML = cvHTML;
+      }
+
+      // === 注入首页底部中间动画 ===
+      var scrollBtn = document.querySelector('[onclick="scrollToMain()"]');      
+      var bottomBar = scrollBtn ? scrollBtn.parentElement : null;      
+      var rightSideElement = bottomBar ? bottomBar.lastElementChild : null;
+      if (bottomBar && rightSideElement && !bottomBar.querySelector('.center-preloader-box')) {
+          console.log("Preloader: Bottom bar found, injecting animation..."); //用于调试
+          var preloaderHTML = \`
+            <div class="center-preloader-box">
+                <div class="preloader">
+                  <div class="crack crack1"></div>
+                  <div class="crack crack2"></div>
+                  <div class="crack crack3"></div>
+                  <div class="crack crack4"></div>
+                  <div class="crack crack5"></div>
+                </div>
+            </div>
+          \`;
+          rightSideElement.insertAdjacentHTML('beforebegin', preloaderHTML);
+      } else {
+          if(!bottomBar) console.log("Preloader Error: Could not find bottom bar container.");
+      }
+      
+      // 注入仓鼠 
+      var socialContactsDiv = document.querySelector('.social-contacts');
+      if (socialContactsDiv && !document.querySelector('.wheel-and-hamster')) {
+        console.log("Adding Hamster to the Left...");
+        var hamsterHTML = \`
+          <div aria-label="Orange and tan hamster running in a metal wheel" role="img" class="wheel-and-hamster">
+              <div class="wheel"></div>
+              <div class="hamster">
+                  <div class="hamster__body">
+                      <div class="hamster__head">
+                          <div class="hamster__ear"></div>
+                          <div class="hamster__eye"></div>
+                          <div class="hamster__nose"></div>
+                      </div>
+                      <div class="hamster__limb hamster__limb--fr"></div>
+                      <div class="hamster__limb hamster__limb--fl"></div>
+                      <div class="hamster__limb hamster__limb--br"></div>
+                      <div class="hamster__limb hamster__limb--bl"></div>
+                      <div class="hamster__tail"></div>
+                  </div>
+              </div>
+              <div class="spoke"></div>
+          </div>
+        \`;
+        socialContactsDiv.insertAdjacentHTML('beforebegin', hamsterHTML);
+      }
+    }
+    var observer = new MutationObserver(function(mutations) {
+        runCVInjection();
+    });
+    
+    // 启动监控
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // 初始运行
+    document.addEventListener("DOMContentLoaded", runCVInjection);
+    document.addEventListener("pjax:complete", runCVInjection);
+  </script>
+
+  <script type="module">
+        import * as THREE from 'three';
+
+        let scene, camera, renderer;
+        let earthGroup; 
+        let stars;
+        let isSceneInit = false;
+        
+        const CONFIG = {
+            earthRadius: 10,
+            glowRadius: 10.3, 
+            rotateSpeed: 0.0005 
+        };
+
+        function initEarth3D() {
+            if (document.getElementById('scene-container-canvas')) return; 
+            
+            const container = document.getElementById('scene-container');
+            if (!container) return;
+
+            // 1. Scene
+            scene = new THREE.Scene();
+            
+            // 2. Camera
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+            camera.position.set(0, 0, 32); 
+            
+            // 3. Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.domElement.id = 'scene-container-canvas';
+            container.appendChild(renderer.domElement);
+
+            // 4. Lights
+            const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
+            sunLight.position.set(-50, 20, 30); 
+            scene.add(sunLight);
+            
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.3); 
+            scene.add(ambientLight);
+            
+            const backLight = new THREE.SpotLight(0x00f2ff, 1.5); 
+            backLight.position.set(0, 20, -50);
+            scene.add(backLight);
+
+            // 5. Group
+            earthGroup = new THREE.Group();
+            earthGroup.rotation.z = 23.5 * Math.PI / 180; 
+            scene.add(earthGroup);
+
+            // 6. Objects
+            createStars();
+            createRealisticEarth();
+            createAtmosphere();
+            
+            // 7. Resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // 8. Animation
+            animate();
+            
+            isSceneInit = true;
+            
+            // Initial Check for scroll
+            checkScroll();
+            window.addEventListener('scroll', checkScroll);
+        }
+
+        // ... (createRealisticEarth, etc. unchanged)
+        
+        function createRealisticEarth() {
+            const geometry = new THREE.SphereGeometry(CONFIG.earthRadius, 64, 64);
+            const loader = new THREE.TextureLoader();
+
+            const material = new THREE.MeshPhongMaterial({
+                map: loader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'),
+                bumpMap: loader.load('https://unpkg.com/three-globe/example/img/earth-topology.png'),
+                bumpScale: 0.15,
+                specularMap: loader.load('https://unpkg.com/three-globe/example/img/earth-water.png'),
+                specular: new THREE.Color(0x333333),
+                shininess: 15
+            });
+
+            const earth = new THREE.Mesh(geometry, material);
+            earthGroup.add(earth);
+        }
+
+        function createAtmosphere() {
+            const vertexShader = \`
+                varying vec3 vNormal;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            \`;
+            const fragmentShader = \`
+                varying vec3 vNormal;
+                void main() {
+                    float intensity = pow(0.65 - dot(vNormal, vec3(0, 0, 1.0)), 3.0);
+                    gl_FragColor = vec4(0.0, 0.8, 1.0, 1.0) * intensity * 1.5;
+                }
+            \`;
+
+            const geometry = new THREE.SphereGeometry(CONFIG.glowRadius, 64, 64);
+            const material = new THREE.ShaderMaterial({
+                vertexShader,
+                fragmentShader,
+                blending: THREE.AdditiveBlending,
+                side: THREE.BackSide,
+                transparent: true,
+                depthWrite: false
+            });
+
+            const atmosphere = new THREE.Mesh(geometry, material);
+            earthGroup.add(atmosphere);
+        }
+
+        function createStars() {
+            const geometry = new THREE.BufferGeometry();
+            const count = 3000;
+            const posArray = new Float32Array(count * 3);
+            for(let i=0; i<count*3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 600; 
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const material = new THREE.PointsMaterial({
+                size: 0.5, color: 0xffffff, transparent: true, opacity: 0.6
+            });
+            stars = new THREE.Points(geometry, material);
+            scene.add(stars);
+        }
+
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            
+            const container = document.getElementById('scene-container');
+            if (!container) return;
+
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (earthGroup) {
+                earthGroup.rotation.y += CONFIG.rotateSpeed;
+            }
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+        
+        function checkScroll() {
+            const container = document.getElementById('scene-container');
+            if (!container) return;
+            
+            const rect = container.getBoundingClientRect();
+            const viewHeight = window.innerHeight;
+            
+            // Trigger when the top of the container is within the viewport (or close to it)
+            // As we scroll down, rect.top decreases. When rect.top < viewHeight, it's entering view.
+            
+            if (rect.top <= viewHeight * 0.9) { 
+                // Fade in
+                container.style.opacity = '1';
+                document.body.classList.add('starry-night');
+            } else {
+                // Fade out
+                container.style.opacity = '0';
+                document.body.classList.remove('starry-night');
+            }
+        }
+
+        // Initialize when DOM is ready or after injection
+        // Since the container is injected dynamically by runCVInjection, we need to wait for it.
+        
+        const observer = new MutationObserver((mutations) => {
+            if (document.getElementById('scene-container') && !document.getElementById('scene-container-canvas')) {
+                initEarth3D();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Also try immediately
+        // setTimeout(initEarth3D, 2000); 
+  </script>
+`);
