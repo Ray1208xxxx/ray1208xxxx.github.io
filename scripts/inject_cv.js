@@ -892,21 +892,20 @@ hexo.extend.injector.register('head_end', `
         display: none !important;
     }
 
-    /* === 新增：地球右侧控制按钮组 === */
+    /* === 地球控制按钮组 === */
     .earth-controls {
         position: absolute;
         top: 50%;
-        right: 10%; /* 距离右边的距离 */
+        right: 0%;  
         transform: translateY(-50%);
         display: flex;
         flex-direction: column;
-        gap: 20px; /* 按钮之间的间距 */
-        z-index: 100; /* 确保在地球上面 */
-        pointer-events: auto !important; /* 关键：强制开启点击，覆盖父级的 none */
+        gap: 20px;  
+        z-index: 100; 
+        pointer-events: auto !important;  
         opacity: 0;
-        animation: fadeInRight 1s ease 1s forwards; /* 延时进场动画 */
+        animation: fadeInRight 1s ease 1s forwards;  
     }
-
     .earth-btn {
         background: rgba(255, 255, 255, 0.05); /* 极淡的透明背景 */
         border: 1px solid rgba(255, 255, 255, 0.2); /* 细边框 */
@@ -927,7 +926,6 @@ hexo.extend.injector.register('head_end', `
         width: fit-content;
         min-width: 160px; /* 统一最小宽度 */
     }
-
     /* 按钮悬停效果 */
     .earth-btn:hover {
         background: rgba(255, 255, 255, 0.15);
@@ -936,18 +934,15 @@ hexo.extend.injector.register('head_end', `
         transform: translateX(-5px); /* 向左轻微浮动 */
         box-shadow: 0 0 20px rgba(0, 242, 255, 0.3); /* 青色发光，呼应地球边缘光 */
     }
-
     /* 按钮图标颜色 */
     .earth-btn i {
         color: #00f2ff; /* 青色图标 */
         font-size: 16px;
     }
-
     @keyframes fadeInRight {
         from { opacity: 0; transform: translate(30px, -50%); }
         to { opacity: 1; transform: translate(0, -50%); }
     }
-
     /* 移动端适配：按钮放到底部或者调整位置 */
     @media (max-width: 768px) {
         .earth-controls {
@@ -955,7 +950,7 @@ hexo.extend.injector.register('head_end', `
             bottom: 10%;
             right: 50%;
             transform: translateX(50%);
-            flex-direction: row; /* 手机上改为横排 */
+            flex-direction: row; 
             width: 90%;
             justify-content: center;
             flex-wrap: wrap;
@@ -1154,6 +1149,32 @@ hexo.extend.injector.register('body_end', `
           console.log("CV Injection: Target list detected, running replacement...");
           var cvHTML = \`
             <div class="cv-home-sections">
+
+              <!-- 3D Earth Container Hook -->
+              <div style="position: relative; width: 100%; height: 100vh; margin-top: 50px;">
+                  <div id="scene-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0;"></div>
+                  <div class="earth-controls">
+                      <button class="earth-btn" onclick="window.focusLocation(30.57, 104.06, 'chengdu')" data-id="chengdu">
+                          <i class="fa-solid fa-city"></i> CHENGDU
+                      </button>
+                      
+                      <button class="earth-btn" onclick="window.focusLocation(-27.47, 153.02, 'brisbane')" data-id="brisbane">
+                          <i class="fa-solid fa-bridge-water"></i> Brisbane
+                      </button>
+                      
+                      <button class="earth-btn" onclick="window.focusLocation(40.44, -79.99, 'pittsburgh')" data-id="pittsburgh">
+                          <i class="fa-solid fa-industry"></i> Pittsburgh
+                      </button>
+
+                      <button class="earth-btn" onclick="window.focusLocation(34.05, -118.24, 'la')" data-id="la">
+                          <i class="fa-solid fa-film"></i> Los Angeles
+                      </button>
+                      <button class="earth-btn" onclick="window.resetView()">
+                          <i class="fa-solid fa-rocket"></i> ORBIT
+                      </button>
+                  </div>
+              </div>
+
               <div class="cv-edu-section">
                 <div class="cv-section-title"><i class="fa-solid fa-graduation-cap"></i> Education</div>
                 <div class="cv-grid">
@@ -1263,33 +1284,7 @@ hexo.extend.injector.register('body_end', `
                     </div>
                   </a>
                   
-                  <!-- 3D Earth Container Hook -->
-                  <div style="position: relative; width: 100%; height: 100vh; margin-top: 50px;">
-                      
-                      <div id="scene-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0;"></div>
-                      
-                      <div class="earth-controls">
-                          <button class="earth-btn" onclick="window.focusLocation(30.57, 104.06, 'chengdu')" data-id="chengdu">
-                              <i class="fa-solid fa-user-astronaut"></i> CHENGDU
-                          </button>
-                          
-                          <button class="earth-btn" onclick="window.focusLocation(-27.47, 153.02, 'brisbane')" data-id="brisbane">
-                              <i class="fa-solid fa-rocket"></i> Brisbane
-                          </button>
-                          
-                          <button class="earth-btn" onclick="window.focusLocation(40.44, -79.99, 'pittsburgh')" data-id="pittsburgh">
-                              <i class="fa-solid fa-rocket"></i> Pittsburgh
-                          </button>
-
-                          <button class="earth-btn" onclick="window.focusLocation(34.05, -118.24, 'la')" data-id="la">
-                              <i class="fa-solid fa-rocket"></i> Los Angeles
-                          </button>
-                          <button class="earth-btn" onclick="window.resetView()">
-                              <i class="fa-solid fa-rocket"></i> SYSTEM ORBIT VIEW
-                          </button>
-                      </div>
-
-                  </div>
+                  
 
                 </div>
               </div>
@@ -1418,7 +1413,7 @@ hexo.extend.injector.register('body_end', `
 
         // Group
         earthGroup = new THREE.Group();
-        earthGroup.rotation.z = 23.5 * Math.PI / 180; 
+        earthGroup.rotation.z = 0 * Math.PI / 180; 
         if (window.innerWidth > 768) {
             earthGroup.position.x = -1; 
         } else {
@@ -1628,7 +1623,7 @@ hexo.extend.injector.register('body_end', `
         
         // 恢复地球默认角度
         new window.TWEEN.Tween(earthGroup.rotation)
-            .to({ x: 0, z: 23.5 * Math.PI / 180 }, 1000)
+            .to({ x: 0, z: 0 * Math.PI / 180 }, 1000)
             .start();
     };
 
