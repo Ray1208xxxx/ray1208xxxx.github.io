@@ -1088,6 +1088,7 @@ hexo.extend.injector.register('body_end', `
 
     // 2. Pjax 兼容
     document.addEventListener("pjax:send", function() {
+      document.body.classList.remove('starry-night');
         /*
         if (!document.getElementById('loader-overlay')) {
             var loaderHTML = '<div id="loader-overlay" style="opacity:1; visibility:visible;">...同上...</div>';
@@ -1126,7 +1127,10 @@ hexo.extend.injector.register('body_end', `
     function runCVInjection() {
       manageHomeLayout();
 
-      if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') return;
+      if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+          document.body.classList.remove('starry-night');  
+          return;
+      }
       
       // === 侧边栏改造  ===
       var sideCard = document.querySelector('.sidebar-content');
@@ -1597,15 +1601,25 @@ hexo.extend.injector.register('body_end', `
 
     function createStars() {
         const geometry = new THREE.BufferGeometry();
-        const count = 3000;
+        const count = 10000;
         const posArray = new Float32Array(count * 3);
         for(let i=0; i<count*3; i++) {
             posArray[i] = (Math.random() - 0.5) * 600; 
         }
         geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        
+        const loader = new THREE.TextureLoader();
+        const starTexture = loader.load('https://threejs.org/examples/textures/sprites/disc.png');
+
         const material = new THREE.PointsMaterial({
-            size: 0.5, color: 0xffffff, transparent: true, opacity: 0.6
+            size: 1.1,           
+            color: 0xffffff,     
+            transparent: true,   
+            opacity: 0.8,
+            map: starTexture,     
+            alphaTest: 0.5       
         });
+      
         stars = new THREE.Points(geometry, material);
         scene.add(stars);
     }
@@ -1764,7 +1778,11 @@ hexo.extend.injector.register('body_end', `
     
     function checkScroll() {
         const container = document.getElementById('scene-container');
-        if (!container) return;
+        // === 修复核心：如果找不到容器（说明切走了），也要移除类名 ===
+        if (!container) {
+            document.body.classList.remove('starry-night');
+            return;
+        }
         
         const rect = container.getBoundingClientRect();
         const viewHeight = window.innerHeight;
