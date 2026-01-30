@@ -1068,6 +1068,32 @@ hexo.extend.injector.register('body_begin', `
 
 hexo.extend.injector.register('body_end', `
   <script>
+    // === 🎵 全局点击播放功能 ===
+    function initGlobalClickToPlay() {
+        var clickToPlayHandler = function() {
+            var playBtn = document.querySelector('.aplayer-button.aplayer-play');
+            if (playBtn) {
+                console.log("🎵 检测到全屏点击：触发音乐播放");
+                playBtn.click();  
+            } else {
+                var meting = document.querySelector('meting-js');
+                if (meting && meting.aplayer && meting.aplayer.audio.paused) {
+                    meting.aplayer.play();
+                }
+            }
+            document.removeEventListener('click', clickToPlayHandler);
+        };
+        document.addEventListener('click', clickToPlayHandler);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initGlobalClickToPlay);
+    } else {
+        initGlobalClickToPlay();
+    }
+    document.addEventListener("pjax:complete", function() {
+        initGlobalClickToPlay();
+    });
+
     // 定义隐藏 Loader 的函数
     function hideLoader() {
         var loader = document.getElementById('loader-overlay');
