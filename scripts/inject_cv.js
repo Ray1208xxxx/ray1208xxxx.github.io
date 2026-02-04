@@ -42,7 +42,7 @@ hexo.extend.injector.register('head_end', `
         top: 0; left: 0; width: 100%; height: 100%;
         background-color: #ffffff; 
         z-index: 99999999;  
-        transition: opacity 1.2s ease-out, visibility 1.2s ease-out;
+        transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -1275,7 +1275,7 @@ hexo.extend.injector.register('body_end', `
             loader.style.visibility = 'hidden';
             setTimeout(function() {
                 loader.remove();  
-            }, 1200);
+            }, 500);
         }
     }
     setTimeout(hideLoader, 4000);
