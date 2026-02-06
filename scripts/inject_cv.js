@@ -1414,7 +1414,7 @@ hexo.extend.injector.register('body_end', `
                           <div class="contact-body">
                             <pre class="contact-pre">
                               <code>~ </code>
-                              <code>mail </code>
+                              <code>Email </code>
                               <code class="contact-cmd" data-cmd="ddl1208@icloud.com"></code>
                             </pre>
                           </div>
